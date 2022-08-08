@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!--
+    Items here need to be entered in our translation tool
+    -->
+    <!-- Card details section title for card form entry -->
+    <string name="card_information" tools:ignore="ExtraTranslation">Card information</string>
+    <string name="us_bank_account_payment_sheet_mandate">By clicking \'pay\' you agree to authorize payments pursuant to &lt;a href=\"https://stripe.com/ach-payments/authorization\">these terms&lt;/a>.</string>
+    <string name="us_bank_account_payment_sheet_something_went_wrong">Something went wrong when linking your account. Please try again later.</string>
+</resources>
