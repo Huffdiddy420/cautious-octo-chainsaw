@@ -1,0 +1,40 @@
+apply from: configs.androidLibrary
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'signing'
+apply plugin: 'maven-publish'
+
+dependencies {
+    api project(':payments-core')
+    api project(':paymentsheet')
+
+    ktlint "com.pinterest:ktlint:$ktlintVersion"
+}
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion rootProject.ext.compileSdkVersion
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+ext {
+    artifactId = "stripe-android"
+    artifactName = "stripe-android"
+    artifactDescrption = "Stripe Android SDK"
+}
+
+apply from: "${rootDir}/deploy/deploy.gradle"
