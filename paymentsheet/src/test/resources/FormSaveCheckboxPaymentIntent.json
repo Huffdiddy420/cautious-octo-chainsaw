@@ -1,0 +1,267 @@
+[
+  {
+    "testInput": {
+      "hasCustomer": true,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OffSession",
+      "intentLpms": [
+        "card"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": true,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OffSession",
+      "intentLpms": [
+        "card",
+        "eps"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": true,
+      "lpmTypeFormCode": "sepa_debit",
+      "intentSetupFutureUsage": "OffSession",
+      "intentLpms": [
+        "card",
+        "sepa_debit"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": true,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OnSession",
+      "intentLpms": [
+        "card"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": true,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OnSession",
+      "intentLpms": [
+        "card",
+        "eps"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": true,
+      "lpmTypeFormCode": "sepa_debit",
+      "intentSetupFutureUsage": "OnSession",
+      "intentLpms": [
+        "card",
+        "sepa_debit"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": true,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OneTime",
+      "intentLpms": [
+        "card"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": false,
+      "expectedAllowUserInitiatedReuse": true
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": true,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OneTime",
+      "intentLpms": [
+        "card",
+        "eps"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": false,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": true,
+      "lpmTypeFormCode": "sepa_debit",
+      "intentSetupFutureUsage": "OneTime",
+      "intentLpms": [
+        "card",
+        "sepa_debit"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": false,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": false,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OffSession",
+      "intentLpms": [
+        "card"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": false,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OffSession",
+      "intentLpms": [
+        "card",
+        "eps"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": false,
+      "lpmTypeFormCode": "sepa_debit",
+      "intentSetupFutureUsage": "OffSession",
+      "intentLpms": [
+        "card",
+        "sepa_debit"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": false,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OnSession",
+      "intentLpms": [
+        "card"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": false,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OnSession",
+      "intentLpms": [
+        "card",
+        "eps"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": false,
+      "lpmTypeFormCode": "sepa_debit",
+      "intentSetupFutureUsage": "OnSession",
+      "intentLpms": [
+        "card",
+        "sepa_debit"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": true,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": false,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OneTime",
+      "intentLpms": [
+        "card"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": false,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": false,
+      "lpmTypeFormCode": "card",
+      "intentSetupFutureUsage": "OneTime",
+      "intentLpms": [
+        "card",
+        "eps"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": false,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  },
+  {
+    "testInput": {
+      "hasCustomer": false,
+      "lpmTypeFormCode": "sepa_debit",
+      "intentSetupFutureUsage": "OneTime",
+      "intentLpms": [
+        "card",
+        "sepa_debit"
+      ]
+    },
+    "testOutput": {
+      "expectedReusable": false,
+      "expectedAllowUserInitiatedReuse": false
+    }
+  }
+]
+
