@@ -1,0 +1,13 @@
+enableFeaturePreview("VERSION_CATALOGS")
+
+include ':camera-core'
+include ':financial-connections'
+include ':link'
+include ':payments'
+include ':payments-core'
+include ':payments-ui-core'
+include ':paymentsheet'
+include ':stripe-core'
+include ':stripe-test-e2e'
+include ':wechatpay'
+include ':payments-model'
