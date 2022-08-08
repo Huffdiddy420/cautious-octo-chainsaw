@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.stripe.android.paymentsheet.R
+import com.stripe.android.ui.core.forms.resources.LpmRepository.SupportedPaymentMethod
 import com.stripe.android.test.core.AuthorizeAction
 import com.stripe.android.test.core.Automatic
 import com.stripe.android.test.core.Billing
@@ -124,20 +125,16 @@ class TestGooglePay {
 
             selectors.getGoogleDividerText()
                 .assertTextEquals(
-                    selectors.getResourceString(expectedText),
+                selectors.getResourceString(expectedText),
                     includeEditableText = false
-                )
+            )
             testDriver.teardown()
         }
     }
 
     companion object {
         private val lpmRepository = LpmRepository(
-            LpmRepository.LpmRepositoryArguments(
-                InstrumentationRegistry.getInstrumentation().targetContext.resources
-            )
-        ).apply {
-            forceUpdate(LpmRepository.exposedPaymentMethods, null)
-        }
+            InstrumentationRegistry.getInstrumentation().targetContext.resources
+        )
     }
 }

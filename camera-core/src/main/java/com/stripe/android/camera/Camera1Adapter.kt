@@ -143,7 +143,6 @@ class Camera1Adapter(
         }
     }
 
-    @Deprecated("Deprecated in Java")
     override fun onPreviewFrame(bytes: ByteArray?, camera: Camera) {
         // this method may be called after the camera has closed if there was still an image in
         // flight. In this case, swallow the error. Ideally, we would be able to tell whether the
@@ -460,7 +459,6 @@ class Camera1Adapter(
             }
         }
 
-        @Deprecated("Deprecated in Java")
         override fun onAutoFocus(success: Boolean, camera: Camera) {}
 
         /**

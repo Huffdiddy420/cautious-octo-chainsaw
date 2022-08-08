@@ -49,9 +49,6 @@ class PaymentIntentJsonParser : ModelJsonParser<PaymentIntent> {
         val status = StripeIntent.Status.fromCode(
             optString(json, FIELD_STATUS)
         )
-
-        val paymentMethodOptions = json.optJSONObject(FIELD_PAYMENT_METHOD_OPTIONS)?.toString()
-
         val setupFutureUsage = StripeIntent.Usage.fromCode(
             optString(json, FIELD_SETUP_FUTURE_USAGE)
         )
@@ -92,8 +89,7 @@ class PaymentIntentJsonParser : ModelJsonParser<PaymentIntent> {
             lastPaymentError = lastPaymentError,
             shipping = shipping,
             nextActionData = nextActionData,
-            unactivatedPaymentMethods = unactivatedPaymentMethods,
-            paymentMethodOptionsJsonString = paymentMethodOptions
+            unactivatedPaymentMethods = unactivatedPaymentMethods
         )
     }
 
@@ -168,12 +164,10 @@ class PaymentIntentJsonParser : ModelJsonParser<PaymentIntent> {
         private const val FIELD_NEXT_ACTION = "next_action"
         private const val FIELD_PAYMENT_METHOD = "payment_method"
         private const val FIELD_PAYMENT_METHOD_TYPES = "payment_method_types"
-        private const val FIELD_PAYMENT_METHOD_OPTIONS = "payment_method_options"
         private const val FIELD_RECEIPT_EMAIL = "receipt_email"
         private const val FIELD_SHIPPING = "shipping"
         private const val FIELD_STATUS = "status"
         private const val FIELD_SETUP_FUTURE_USAGE = "setup_future_usage"
-        private const val FIELD_UNACTIVATED_PAYMENT_METHOD_TYPES =
-            "unactivated_payment_method_types"
+        private const val FIELD_UNACTIVATED_PAYMENT_METHOD_TYPES = "unactivated_payment_method_types"
     }
 }

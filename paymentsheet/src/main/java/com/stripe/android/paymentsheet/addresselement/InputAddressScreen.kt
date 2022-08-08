@@ -1,11 +1,12 @@
 package com.stripe.android.paymentsheet.addresselement
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
@@ -25,18 +26,14 @@ import com.stripe.android.ui.core.injection.NonFallbackInjector
 
 @Composable
 internal fun InputAddressScreen(
+    collectedAddress: ShippingAddress?,
     primaryButtonEnabled: Boolean,
-    primaryButtonText: String,
-    title: String,
     onPrimaryButtonClick: () -> Unit,
     onCloseClick: () -> Unit,
+    onEnterManuallyClick: () -> Unit,
     formContent: @Composable ColumnScope.() -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxHeight()
-            .background(MaterialTheme.colors.surface)
-    ) {
+    Column(modifier = Modifier.fillMaxHeight()) {
         AddressOptionsAppBar(
             isRootScreen = true,
             onButtonClick = { onCloseClick() }
@@ -46,15 +43,19 @@ internal fun InputAddressScreen(
                 .padding(horizontal = 20.dp)
         ) {
             Text(
-                title,
+                stringResource(R.string.stripe_paymentsheet_address_element_shipping_address),
                 style = MaterialTheme.typography.h4,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             formContent()
-            AddressElementPrimaryButton(
-                isEnabled = primaryButtonEnabled,
-                text = primaryButtonText
-            ) {
+            if (collectedAddress == null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                EnterManuallyText {
+                    onEnterManuallyClick()
+                }
+            }
+
+            AddressElementPrimaryButton(isEnabled = primaryButtonEnabled) {
                 onPrimaryButtonClick()
             }
         }
@@ -71,28 +72,27 @@ internal fun InputAddressScreen(
         )
     )
     val formController by viewModel.formController.collectAsState()
+
     if (formController == null) {
         Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
         ) {
             CircularProgressIndicator()
         }
     } else {
         formController?.let {
             val completeValues by it.completeFormValues.collectAsState(null)
-            val buttonText = viewModel.args.config?.buttonTitle ?: stringResource(
-                R.string.stripe_paymentsheet_address_element_primary_button
-            )
-            val titleText = viewModel.args.config?.title ?: stringResource(
-                R.string.stripe_paymentsheet_address_element_shipping_address
-            )
+            val collectedAddress by viewModel.collectedAddress.collectAsState()
+
             InputAddressScreen(
+                collectedAddress = collectedAddress,
                 primaryButtonEnabled = completeValues != null,
-                primaryButtonText = buttonText,
-                title = titleText,
-                onPrimaryButtonClick = { viewModel.clickPrimaryButton(completeValues) },
+                onPrimaryButtonClick = { viewModel.clickPrimaryButton() },
                 onCloseClick = { viewModel.navigator.dismiss() },
+                onEnterManuallyClick = { viewModel.expandAddressForm() },
                 formContent = {
                     FormUI(
                         it.hiddenIdentifiers,
@@ -100,12 +100,7 @@ internal fun InputAddressScreen(
                         it.elements,
                         it.lastTextFieldIdentifier
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            CircularProgressIndicator()
-                        }
+                        CircularProgressIndicator()
                     }
                 }
             )

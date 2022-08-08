@@ -15,25 +15,20 @@ import java.util.Locale
 @RunWith(RobolectricTestRunner::class)
 class LpmRepositoryTest {
     private val lpmRepository = LpmRepository(
-        LpmRepository.LpmRepositoryArguments(
-            ApplicationProvider.getApplicationContext<Application>().resources,
-            object : IsFinancialConnectionsAvailable {
-                override fun invoke(): Boolean {
-                    return true
-                }
+        ApplicationProvider.getApplicationContext<Application>().resources,
+        object : IsFinancialConnectionsAvailable {
+            override fun invoke(): Boolean {
+                return true
             }
-        )
+        }
     )
 
     @Test
     fun `Test label for afterpay show correctly when clearpay string`() {
         Locale.setDefault(Locale.UK)
         val lpmRepository = LpmRepository(
-            LpmRepository.LpmRepositoryArguments(
-                ApplicationProvider.getApplicationContext<Application>().resources
-            )
+            ApplicationProvider.getApplicationContext<Application>().resources
         )
-        lpmRepository.updateFromDisk()
         assertThat(lpmRepository.fromCode("afterpay_clearpay")?.displayNameResource)
             .isEqualTo(R.string.stripe_paymentsheet_payment_method_clearpay)
 
@@ -44,114 +39,14 @@ class LpmRepositoryTest {
     fun `Test label for afterpay show correctly when afterpay string`() {
         Locale.setDefault(Locale.US)
         val lpmRepository = LpmRepository(
-            LpmRepository.LpmRepositoryArguments(
-                ApplicationProvider.getApplicationContext<Application>().resources
-            )
+            ApplicationProvider.getApplicationContext<Application>().resources
         )
-        lpmRepository.updateFromDisk()
         assertThat(lpmRepository.fromCode("afterpay_clearpay")?.displayNameResource)
             .isEqualTo(R.string.stripe_paymentsheet_payment_method_afterpay)
     }
 
     @Test
-    fun `Verify failing to read server schema reads from disk`() {
-        lpmRepository.forceUpdate(
-            listOf("affirm"),
-            """
-          [
-            {
-                "type": "affirm",
-                invalid schema
-              }
-         ]
-            """.trimIndent()
-        )
-        assertThat(lpmRepository.fromCode("affirm")).isNotNull()
-    }
-
-    @Test
-    fun `Verify field not found in schema is read from disk`() {
-        lpmRepository.forceUpdate(
-            listOf("card", "afterpay_clearpay"),
-            """
-          [
-            {
-                "type": "afterpay_clearpay",
-                "async": false,
-                "fields": [
-                  {
-                    "type": "affirm_header"
-                  }
-                ]
-              }
-         ]
-            """.trimIndent()
-        )
-        assertThat(lpmRepository.fromCode("afterpay_clearpay")).isNotNull()
-        assertThat(lpmRepository.fromCode("card")).isNotNull()
-    }
-
-    @Test
-    fun `Verify latest server spec`() {
-        lpmRepository.forceUpdate(
-            listOf("bancontact", "sofort", "ideal", "sepa_debit", "p24", "eps", "giropay"),
-            """
-                [
-                  {
-                    "type": "an lpm",
-                    "async": false,
-                    "fields": [
-                      {
-                        "api_path": null,
-                        "type": "afterpay_header"
-                      }
-                    ]
-                  }
-                ]
-            """.trimIndent()
-        )
-        assertThat(lpmRepository.fromCode("sofort")).isNotNull()
-        assertThat(lpmRepository.fromCode("ideal")).isNotNull()
-        assertThat(lpmRepository.fromCode("bancontact")).isNotNull()
-        assertThat(lpmRepository.fromCode("p24")).isNotNull()
-        assertThat(lpmRepository.fromCode("eps")).isNotNull()
-        assertThat(lpmRepository.fromCode("giropay")).isNotNull()
-    }
-
-    @Test
-    fun `Repository will contain LPMs in ordered and schema`() {
-        lpmRepository.forceUpdate(
-            listOf("afterpay_clearpay"),
-            """
-          [
-            {
-                "type": "affirm",
-                "async": false,
-                "fields": [
-                  {
-                    "type": "affirm_header"
-                  }
-                ]
-            },
-            {
-                "type": "afterpay_clearpay",
-                "async": false,
-                "fields": [
-                  {
-                    "type": "affirm_header"
-                  }
-                ]
-              }
-         ]
-            """.trimIndent()
-        )
-        assertThat(lpmRepository.fromCode("afterpay_clearpay")).isNotNull()
-        assertThat(lpmRepository.fromCode("affirm")).isNotNull()
-    }
-
-    @Test
-    fun `Verify no fields in the default json are ignored the lpms package should be correct`() {
-        lpmRepository.updateFromDisk()
+    fun `Verify no fields in the default json are ignored`() {
         // If this test fails, check to make sure the spec's serializer is added to
         // FormItemSpecSerializer
         LpmRepository.exposedPaymentMethods.forEach { code ->
@@ -174,9 +69,8 @@ class LpmRepositoryTest {
 
     @Test
     fun `Verify the repository only shows card if in lpms json`() {
-        assertThat(lpmRepository.fromCode("card")).isNull()
-        lpmRepository.forceUpdate(
-            emptyList(),
+        assertThat(lpmRepository.fromCode("card")).isNotNull()
+        lpmRepository.initialize(
             """
           [
             {
@@ -189,7 +83,7 @@ class LpmRepositoryTest {
                 ]
               }
          ]
-            """.trimIndent()
+            """.trimIndent().byteInputStream()
         )
         assertThat(lpmRepository.fromCode("card")).isNull()
     }
@@ -198,8 +92,7 @@ class LpmRepositoryTest {
     // of in code here.
     @Test
     fun `Verify that unknown LPMs are not shown because not listed as exposed`() {
-        lpmRepository.forceUpdate(
-            emptyList(),
+        lpmRepository.initialize(
             """
               [
                 {
@@ -221,20 +114,18 @@ class LpmRepositoryTest {
                     ]
                   }
              ]
-            """.trimIndent()
+            """.trimIndent().byteInputStream()
         )
         assertThat(lpmRepository.fromCode("unknown_lpm")).isNull()
     }
 
     @Test
     fun `Verify that payment methods hardcoded to delayed remain regardless of json`() {
-        lpmRepository.updateFromDisk()
         assertThat(
             lpmRepository.fromCode("sofort")?.requirement?.piRequirements
         ).contains(Delayed)
 
-        lpmRepository.forceUpdate(
-            emptyList(),
+        lpmRepository.initialize(
             """
               [
                 {
@@ -243,7 +134,7 @@ class LpmRepositoryTest {
                     "fields": []
                   }
              ]
-            """.trimIndent()
+            """.trimIndent().byteInputStream()
         )
         assertThat(
             lpmRepository.fromCode("sofort")?.requirement?.piRequirements
@@ -252,15 +143,14 @@ class LpmRepositoryTest {
 
     @Test
     fun `Verify that us_bank_account is supported when financial connections sdk available`() {
-        lpmRepository.forceUpdate(
-            emptyList(),
+        lpmRepository.initialize(
             """
               [
                 {
                   "type": "us_bank_account"
                 }
               ]
-            """.trimIndent()
+            """.trimIndent().byteInputStream()
         )
 
         assertThat(lpmRepository.fromCode("us_bank_account")).isNotNull()
@@ -269,25 +159,22 @@ class LpmRepositoryTest {
     @Test
     fun `Verify that us_bank_account not supported when financial connections sdk not available`() {
         val lpmRepository = LpmRepository(
-            LpmRepository.LpmRepositoryArguments(
-                ApplicationProvider.getApplicationContext<Application>().resources,
-                object : IsFinancialConnectionsAvailable {
-                    override fun invoke(): Boolean {
-                        return false
-                    }
+            ApplicationProvider.getApplicationContext<Application>().resources,
+            object : IsFinancialConnectionsAvailable {
+                override fun invoke(): Boolean {
+                    return false
                 }
-            )
+            }
         )
 
-        lpmRepository.forceUpdate(
-            emptyList(),
+        lpmRepository.initialize(
             """
               [
                 {
                   "type": "us_bank_account"
                 }
               ]
-            """.trimIndent()
+            """.trimIndent().byteInputStream()
         )
 
         assertThat(lpmRepository.fromCode("us_bank_account")).isNull()

@@ -59,8 +59,9 @@ internal fun SupportedPaymentMethod.getSpecWithFullfilledRequirements(
 
     return when (stripeIntent) {
         is PaymentIntent -> {
-            if (stripeIntent.isLpmLevelSetupFutureUsageSet(code)) {
-                if (supportsPaymentIntentSfuSet(stripeIntent, config)) {
+            if ((stripeIntent.isSetupFutureUsageSet())) {
+                if (supportsPaymentIntentSfuSet(stripeIntent, config)
+                ) {
                     merchantRequestedSave
                 } else {
                     null

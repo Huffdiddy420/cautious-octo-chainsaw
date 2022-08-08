@@ -20,7 +20,6 @@ import com.stripe.android.link.model.Navigator
 import com.stripe.android.link.model.PaymentDetailsFixtures
 import com.stripe.android.link.model.StripeIntentFixtures
 import com.stripe.android.link.ui.ErrorMessage
-import com.stripe.android.link.ui.PrimaryButtonState
 import com.stripe.android.model.ConfirmStripeIntentParams
 import com.stripe.android.model.PaymentMethodCreateParams
 import com.stripe.android.payments.paymentlauncher.PaymentResult
@@ -29,14 +28,8 @@ import com.stripe.android.ui.core.elements.IdentifierSpec
 import com.stripe.android.ui.core.forms.FormFieldEntry
 import com.stripe.android.ui.core.injection.FormControllerSubcomponent
 import com.stripe.android.ui.core.injection.NonFallbackInjector
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -89,14 +82,9 @@ class PaymentMethodViewModelTest {
 
     @Before
     fun before() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         linkAccountManager = mock()
         whenever(args.stripeIntent).thenReturn(StripeIntentFixtures.PI_SUCCEEDED)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
+        whenever(args.completePayment).thenReturn(true)
     }
 
     @Test
@@ -186,6 +174,31 @@ class PaymentMethodViewModelTest {
         }
 
     @Test
+    fun `startPayment returns PaymentMethodCreateParams when PaymentDetails creation succeeds and completePayment is false`() =
+        runTest {
+            whenever(args.completePayment).thenReturn(false)
+
+            val linkPaymentDetails = createLinkPaymentDetails()
+            whenever(
+                linkAccountManager.createPaymentDetails(
+                    anyOrNull(),
+                    anyOrNull(),
+                    anyOrNull(),
+                    anyOrNull()
+                )
+            ).thenReturn(Result.success(linkPaymentDetails))
+
+            createViewModel().startPayment(cardFormFieldValues)
+
+            val paramsCaptor = argumentCaptor<LinkActivityResult>()
+            verify(navigator).dismiss(paramsCaptor.capture())
+
+            assertThat(paramsCaptor.firstValue).isEqualTo(
+                LinkActivityResult.Success.Selected(linkPaymentDetails)
+            )
+        }
+
+    @Test
     fun `startPayment dismisses Link on success`() = runTest {
         whenever(
             linkAccountManager.createPaymentDetails(
@@ -209,14 +222,9 @@ class PaymentMethodViewModelTest {
             callback!!(Result.success(PaymentResult.Completed))
         }
 
-        val viewModel = createViewModel()
-        viewModel.startPayment(cardFormFieldValues)
+        createViewModel().startPayment(cardFormFieldValues)
 
-        assertThat(viewModel.primaryButtonState.value).isEqualTo(PrimaryButtonState.Completed)
-
-        advanceTimeBy(PrimaryButtonState.COMPLETED_DELAY_MS + 1)
-
-        verify(navigator).dismiss(LinkActivityResult.Completed)
+        verify(navigator).dismiss(LinkActivityResult.Success.Completed)
     }
 
     @Test
@@ -232,14 +240,14 @@ class PaymentMethodViewModelTest {
 
         val viewModel = createViewModel()
 
-        var state: PrimaryButtonState? = null
-        viewModel.primaryButtonState.asLiveData().observeForever {
-            state = it
+        var isProcessing: Boolean? = null
+        viewModel.isProcessing.asLiveData().observeForever {
+            isProcessing = it
         }
 
         viewModel.startPayment(cardFormFieldValues)
 
-        assertThat(state).isEqualTo(PrimaryButtonState.Processing)
+        assertThat(isProcessing).isTrue()
     }
 
     @Test
@@ -268,14 +276,14 @@ class PaymentMethodViewModelTest {
 
         val viewModel = createViewModel()
 
-        var state: PrimaryButtonState? = null
-        viewModel.primaryButtonState.asLiveData().observeForever {
-            state = it
+        var isProcessing: Boolean? = null
+        viewModel.isProcessing.asLiveData().observeForever {
+            isProcessing = it
         }
 
         viewModel.startPayment(cardFormFieldValues)
 
-        assertThat(state).isEqualTo(PrimaryButtonState.Enabled)
+        assertThat(isProcessing).isFalse()
     }
 
     @Test

@@ -15,8 +15,7 @@ data class AccountRange internal constructor(
     val brand: CardBrand
         get() = brandInfo.brand
 
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    enum class BrandInfo(
+    internal enum class BrandInfo(
         val brandName: String,
         val brand: CardBrand
     ) {

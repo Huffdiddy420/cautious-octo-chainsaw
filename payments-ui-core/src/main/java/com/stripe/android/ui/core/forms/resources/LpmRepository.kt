@@ -35,27 +35,23 @@ import com.stripe.android.ui.core.elements.LpmSerializer
 import com.stripe.android.ui.core.elements.SaveForFutureUseSpec
 import com.stripe.android.ui.core.elements.SharedDataSpec
 import java.io.InputStream
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * This class is responsible for loading the LPM UI Specification for all LPMs, and returning
  * a particular requested LPM.
- *
- * This is not injected as a singleton because when the activity is killed
- * the FormViewModel and SheetViewModel don't share the Dagger graph and the
- * repository is not a singleton.  Additionally every time you create a new
- * form view model a new repository is created and thus needs to be initialized.
  */
+@Singleton
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-class LpmRepository constructor(
-    private val arguments: LpmRepositoryArguments
+class LpmRepository @Inject constructor(
+    resources: Resources?,
+    private val isFinancialConnectionsAvailable: IsFinancialConnectionsAvailable =
+        DefaultIsFinancialConnectionsAvailable()
 ) {
-    private val lpmSerializer = LpmSerializer()
-    private val serverInitializedLatch = CountDownLatch(1)
-    var serverSpecLoadingState: ServerSpecState = ServerSpecState.Uninitialized
+    private val lpmSerializer: LpmSerializer = LpmSerializer()
 
-    private var codeToSupportedPaymentMethod = mutableMapOf<String, SupportedPaymentMethod>()
+    private lateinit var codeToSupportedPaymentMethod: Map<String, SupportedPaymentMethod>
 
     fun values() = codeToSupportedPaymentMethod.values
 
@@ -63,104 +59,27 @@ class LpmRepository constructor(
         codeToSupportedPaymentMethod[paymentMethodCode]
     }
 
-    fun isLoaded() = serverInitializedLatch.count <= 0L
-
-    fun waitUntilLoaded() {
-        serverInitializedLatch.await(20, TimeUnit.SECONDS)
-    }
-
-    /**
-     * This method will read the expected LPMs and their specs as two separate parameters.
-     * Any spec now found from the server will be read from disk json file.
-     *
-     * It is still possible that an lpm that is expected cannot be read successfully from
-     * the json spec on disk or the server spec.
-     *
-     * It is also possible that an LPM is present in the repository that is not present
-     * in the expected LPM list.
-     *
-     * Reading the server spec is all or nothing, any error means none will be read
-     * so it is important that the json on disk is successful.
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    fun update(
-        expectedLpms: List<String>,
-        serverLpmSpecs: String?
-    ) = internalUpdate(expectedLpms, serverLpmSpecs, false)
-
-    @VisibleForTesting
-    fun forceUpdate(
-        expectedLpms: List<String>,
-        serverLpmSpecs: String?
-    ) = internalUpdate(expectedLpms, serverLpmSpecs, true)
-
-    /**
-     * Will add the server specs to the repository and load the ones from disk if
-     * server is not parseable.
-     */
-    private fun internalUpdate(
-        expectedLpms: List<String>,
-        serverLpmSpecs: String?,
-        force: Boolean = false
-    ) {
-        // If the expectedLpms is different form last time, we still need to reload.
-        var lpmsNotParsedFromServerSpec = expectedLpms
-            .filter { !codeToSupportedPaymentMethod.containsKey(it) }
-        if (!isLoaded() || force || lpmsNotParsedFromServerSpec.isNotEmpty()) {
-            serverSpecLoadingState = ServerSpecState.NoServerSpec(serverLpmSpecs)
-            if (!serverLpmSpecs.isNullOrEmpty()) {
-                serverSpecLoadingState = ServerSpecState.ServerNotParsed(serverLpmSpecs)
-                val serverLpmObjects = lpmSerializer.deserializeList(serverLpmSpecs)
-                if (serverLpmObjects.isNotEmpty()) {
-                    serverSpecLoadingState = ServerSpecState.ServerParsed(serverLpmSpecs)
-                }
-                update(serverLpmObjects)
-            }
-
-            // If the server does not return specs, or they are not parsed successfully
-            // we will use the LPM on disk if found
-            lpmsNotParsedFromServerSpec = expectedLpms
-                .filter { !codeToSupportedPaymentMethod.containsKey(it) }
-            if (lpmsNotParsedFromServerSpec.isNotEmpty()) {
-                val mapFromDisk: Map<String, SharedDataSpec>? =
-                    readFromDisk()
-                        ?.associateBy { it.type }
-                        ?.filterKeys { expectedLpms.contains(it) }
-                codeToSupportedPaymentMethod.putAll(
-                    lpmsNotParsedFromServerSpec
-                        .mapNotNull { mapFromDisk?.get(it) }
-                        .mapNotNull { convertToSupportedPaymentMethod(it) }
-                        .associateBy { it.code }
-                )
-            }
-
-            serverInitializedLatch.countDown()
-        }
+    init {
+        initialize(
+            resources?.assets?.open("lpms.json")
+        )
     }
 
     @VisibleForTesting
-    fun updateFromDisk() {
-        update(readFromDisk())
-    }
-
-    private fun readFromDisk() =
-        parseLpms(arguments.resources?.assets?.open("lpms.json"))
-
-    private fun update(lpms: List<SharedDataSpec>?) {
-        // By mapNotNull we will not accept any LPMs that are not known by the platform.
-        val parsedSupportedPaymentMethod = lpms
+    fun initialize(inputStream: InputStream?) {
+        val parsedSupportedPaymentMethod = parseLpms(inputStream)
             ?.filter { exposedPaymentMethods.contains(it.type) }
             ?.mapNotNull { convertToSupportedPaymentMethod(it) }
             ?.toMutableList()
 
         parsedSupportedPaymentMethod?.removeAll {
-            !arguments.isFinancialConnectionsAvailable() &&
+            !isFinancialConnectionsAvailable() &&
                 it.code == PaymentMethod.Type.USBankAccount.code
         }
 
-        codeToSupportedPaymentMethod.putAll(
+        // By mapNotNull we will not accept any LPMs that are not known by the platform.
+        codeToSupportedPaymentMethod =
             parsedSupportedPaymentMethod?.associateBy { it.code } ?: emptyMap()
-        )
     }
 
     private fun parseLpms(inputStream: InputStream?) =
@@ -360,13 +279,6 @@ class LpmRepository constructor(
     }
 
     companion object {
-        @Volatile
-        private var INSTANCE: LpmRepository? = null
-        fun getInstance(args: LpmRepositoryArguments): LpmRepository =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: LpmRepository(args).also { INSTANCE = it }
-            }
-
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         val HardcodedCard = SupportedPaymentMethod(
             "card",
@@ -381,7 +293,8 @@ class LpmRepository constructor(
         /**
          * This is a list of the payment methods that we are allowing in the release
          */
-        val exposedPaymentMethods by lazy {
+        @VisibleForTesting
+        internal val exposedPaymentMethods by lazy {
             listOf(
                 PaymentMethod.Type.Card.code,
                 PaymentMethod.Type.Bancontact.code,
@@ -400,19 +313,4 @@ class LpmRepository constructor(
             )
         }
     }
-
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    sealed class ServerSpecState(val serverLpmSpecs: String?) {
-        object Uninitialized : ServerSpecState(null)
-        class NoServerSpec(serverLpmSpecs: String?) : ServerSpecState(serverLpmSpecs)
-        class ServerParsed(serverLpmSpecs: String?) : ServerSpecState(serverLpmSpecs)
-        class ServerNotParsed(serverLpmSpecs: String?) : ServerSpecState(serverLpmSpecs)
-    }
-
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    data class LpmRepositoryArguments(
-        val resources: Resources?,
-        val isFinancialConnectionsAvailable: IsFinancialConnectionsAvailable =
-            DefaultIsFinancialConnectionsAvailable()
-    )
 }

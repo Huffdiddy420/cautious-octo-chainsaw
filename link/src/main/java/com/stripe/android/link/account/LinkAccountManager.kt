@@ -2,10 +2,9 @@ package com.stripe.android.link.account
 
 import androidx.annotation.VisibleForTesting
 import com.stripe.android.core.exception.AuthenticationException
+import com.stripe.android.link.LinkActivityContract
 import com.stripe.android.link.LinkPaymentDetails
 import com.stripe.android.link.analytics.LinkEventsReporter
-import com.stripe.android.link.injection.CUSTOMER_EMAIL
-import com.stripe.android.link.injection.LINK_INTENT
 import com.stripe.android.link.model.AccountStatus
 import com.stripe.android.link.model.LinkAccount
 import com.stripe.android.link.repositories.LinkRepository
@@ -21,7 +20,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import javax.inject.Named
 import javax.inject.Singleton
 
 /**
@@ -29,8 +27,7 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class LinkAccountManager @Inject constructor(
-    @Named(CUSTOMER_EMAIL) private val customerEmail: String?,
-    @Named(LINK_INTENT) private val stripeIntent: StripeIntent,
+    private val args: LinkActivityContract.Args,
     private val linkRepository: LinkRepository,
     private val cookieStore: CookieStore,
     private val linkEventsReporter: LinkEventsReporter
@@ -59,11 +56,11 @@ internal class LinkAccountManager @Inject constructor(
                         }
                         // If a customer email was passed in, lookup the account,
                         // unless the user has logged out of this account
-                        ?: customerEmail?.let {
+                        ?: args.customerEmail?.let {
                             if (hasUserLoggedOut(it)) {
                                 AccountStatus.SignedOut
                             } else {
-                                lookupConsumer(customerEmail).getOrNull()?.accountStatus
+                                lookupConsumer(args.customerEmail).getOrNull()?.accountStatus
                             }
                         } ?: AccountStatus.SignedOut
                     )
@@ -209,13 +206,13 @@ internal class LinkAccountManager @Inject constructor(
     suspend fun createPaymentDetails(
         paymentMethod: SupportedPaymentMethod,
         paymentMethodCreateParams: PaymentMethodCreateParams
-    ): Result<LinkPaymentDetails.New> =
+    ): Result<LinkPaymentDetails> =
         linkAccount.value?.let { account ->
             createPaymentDetails(
                 paymentMethod,
                 paymentMethodCreateParams,
                 account.email,
-                stripeIntent
+                args.stripeIntent
             )
         } ?: Result.failure(
             IllegalStateException("A non-null Link account is needed to create payment details")

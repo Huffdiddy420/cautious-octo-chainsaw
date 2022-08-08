@@ -12,7 +12,7 @@ import javax.inject.Singleton
 @Singleton
 internal class AddressElementNavigator @Inject constructor() {
     var navigationController: NavHostController? = null
-    var onDismiss: ((AddressLauncherResult) -> Unit)? = null
+    var onDismiss: ((AddressElementResult) -> Unit)? = null
 
     fun navigateTo(
         target: AddressElementScreen
@@ -24,7 +24,7 @@ internal class AddressElementNavigator @Inject constructor() {
     fun <T> getResultFlow(key: String) =
         navigationController?.currentBackStackEntry?.savedStateHandle?.getLiveData<T>(key)?.asFlow()
 
-    fun dismiss(result: AddressLauncherResult = AddressLauncherResult.Canceled) =
+    fun dismiss(result: AddressElementResult = AddressElementResult.Canceled) =
         onDismiss?.let {
             it(result)
         }

@@ -23,7 +23,7 @@ class AddressElementPrimaryButtonScreenshot : ScreenshotTest {
                 colors = PaymentsThemeDefaults.colorsLight
             ) {
                 Surface(color = colors.materialColors.surface) {
-                    AddressElementPrimaryButton(isEnabled = true, BUTTON_TEXT) {
+                    AddressElementPrimaryButton(isEnabled = true) {
                     }
                 }
             }
@@ -39,7 +39,7 @@ class AddressElementPrimaryButtonScreenshot : ScreenshotTest {
                 colors = PaymentsThemeDefaults.colorsDark
             ) {
                 Surface(color = colors.materialColors.surface) {
-                    AddressElementPrimaryButton(isEnabled = true, BUTTON_TEXT) {
+                    AddressElementPrimaryButton(isEnabled = true) {
                     }
                 }
             }
@@ -55,7 +55,7 @@ class AddressElementPrimaryButtonScreenshot : ScreenshotTest {
                 colors = PaymentsThemeDefaults.colorsLight
             ) {
                 Surface(color = colors.materialColors.surface) {
-                    AddressElementPrimaryButton(isEnabled = false, BUTTON_TEXT) {}
+                    AddressElementPrimaryButton(isEnabled = false) {}
                 }
             }
         }
@@ -70,14 +70,10 @@ class AddressElementPrimaryButtonScreenshot : ScreenshotTest {
                 colors = PaymentsThemeDefaults.colorsDark
             ) {
                 Surface(color = colors.materialColors.surface) {
-                    AddressElementPrimaryButton(isEnabled = false, BUTTON_TEXT) {}
+                    AddressElementPrimaryButton(isEnabled = false) {}
                 }
             }
         }
         compareScreenshot(composeTestRule)
-    }
-
-    companion object {
-        const val BUTTON_TEXT = "Save Address"
     }
 }

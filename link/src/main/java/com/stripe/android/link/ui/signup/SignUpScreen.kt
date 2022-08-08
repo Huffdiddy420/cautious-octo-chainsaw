@@ -104,7 +104,13 @@ internal fun SignUpBody(
 
     ScrollableTopLevelColumn {
         Text(
-            text = stringResource(R.string.sign_up_header),
+            text = stringResource(
+                if (signUpState == SignUpState.InputtingPhone) {
+                    R.string.sign_up_header_new_user
+                } else {
+                    R.string.sign_up_header
+                }
+            ),
             modifier = Modifier
                 .padding(vertical = 4.dp),
             textAlign = TextAlign.Center,
@@ -197,7 +203,7 @@ internal fun EmailCollectionSection(
                     .semantics {
                         testTag = progressIndicatorTestTag
                     },
-                color = MaterialTheme.linkColors.progressIndicator,
+                color = MaterialTheme.linkColors.buttonLabel,
                 strokeWidth = 2.dp
             )
         }

@@ -15,14 +15,12 @@ import com.stripe.android.link.injection.SignedInViewModelSubcomponent
 import com.stripe.android.link.model.LinkAccount
 import com.stripe.android.link.model.Navigator
 import com.stripe.android.link.ui.ErrorMessage
-import com.stripe.android.link.ui.PrimaryButtonState
 import com.stripe.android.link.ui.cardedit.CardEditViewModel
 import com.stripe.android.link.ui.getErrorMessage
 import com.stripe.android.model.ConsumerPaymentDetails
 import com.stripe.android.payments.paymentlauncher.PaymentResult
 import com.stripe.android.ui.core.injection.NonFallbackInjectable
 import com.stripe.android.ui.core.injection.NonFallbackInjector
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -43,8 +41,8 @@ internal class WalletViewModel @Inject constructor(
         MutableStateFlow<List<ConsumerPaymentDetails.PaymentDetails>>(emptyList())
     val paymentDetails: StateFlow<List<ConsumerPaymentDetails.PaymentDetails>> = _paymentDetails
 
-    private val _primaryButtonState = MutableStateFlow(PrimaryButtonState.Disabled)
-    val primaryButtonState: StateFlow<PrimaryButtonState> = _primaryButtonState
+    private val _isProcessing = MutableStateFlow(false)
+    val isProcessing: StateFlow<Boolean> = _isProcessing
 
     private val _errorMessage = MutableStateFlow<ErrorMessage?>(null)
     val errorMessage: StateFlow<ErrorMessage?> = _errorMessage
@@ -66,38 +64,46 @@ internal class WalletViewModel @Inject constructor(
 
     fun onSelectedPaymentDetails(selectedPaymentDetails: ConsumerPaymentDetails.PaymentDetails) {
         clearError()
-        setState(PrimaryButtonState.Processing)
+        _isProcessing.value = true
 
         runCatching { requireNotNull(linkAccountManager.linkAccount.value) }.fold(
             onSuccess = { linkAccount ->
-                val paramsFactory = ConfirmStripeIntentParamsFactory.createFactory(stripeIntent)
-                val params = paramsFactory.createPaymentMethodCreateParams(
-                    linkAccount.clientSecret,
-                    selectedPaymentDetails
-                )
-                confirmationManager.confirmStripeIntent(
-                    paramsFactory.createConfirmStripeIntentParams(params)
-                ) { result ->
-                    result.fold(
-                        onSuccess = { paymentResult ->
-                            when (paymentResult) {
-                                is PaymentResult.Canceled -> {
-                                    // no-op, let the user continue their flow
-                                    setState(PrimaryButtonState.Enabled)
-                                }
-                                is PaymentResult.Failed -> {
-                                    onError(paymentResult.throwable)
-                                }
-                                is PaymentResult.Completed -> {
-                                    setState(PrimaryButtonState.Completed)
-                                    viewModelScope.launch {
-                                        delay(PrimaryButtonState.COMPLETED_DELAY_MS)
-                                        navigator.dismiss(LinkActivityResult.Completed)
+                if (args.completePayment) {
+                    val paramsFactory = ConfirmStripeIntentParamsFactory.createFactory(stripeIntent)
+                    val params = paramsFactory.createPaymentMethodCreateParams(
+                        linkAccount.clientSecret,
+                        selectedPaymentDetails
+                    )
+                    confirmationManager.confirmStripeIntent(
+                        paramsFactory.createConfirmStripeIntentParams(params)
+                    ) { result ->
+                        result.fold(
+                            onSuccess = { paymentResult ->
+                                when (paymentResult) {
+                                    is PaymentResult.Canceled -> {
+                                        // no-op, let the user continue their flow
+                                        _isProcessing.value = false
                                     }
+                                    is PaymentResult.Failed -> {
+                                        onError(paymentResult.throwable)
+                                    }
+                                    is PaymentResult.Completed ->
+                                        navigator.dismiss(LinkActivityResult.Success.Completed)
                                 }
-                            }
-                        },
-                        onFailure = ::onError
+                            },
+                            onFailure = ::onError
+                        )
+                    }
+                } else {
+                    val params = ConfirmStripeIntentParamsFactory.createFactory(stripeIntent)
+                        .createPaymentMethodCreateParams(
+                            linkAccount.clientSecret,
+                            selectedPaymentDetails
+                        )
+                    navigator.dismiss(
+                        LinkActivityResult.Success.Selected(
+                            LinkPaymentDetails.Saved(selectedPaymentDetails, params)
+                        )
                     )
                 }
             },
@@ -120,7 +126,7 @@ internal class WalletViewModel @Inject constructor(
     }
 
     fun deletePaymentMethod(paymentDetails: ConsumerPaymentDetails.PaymentDetails) {
-        setState(PrimaryButtonState.Processing)
+        _isProcessing.value = true
         clearError()
 
         viewModelScope.launch {
@@ -136,15 +142,15 @@ internal class WalletViewModel @Inject constructor(
     }
 
     private fun loadPaymentDetails(initialSetup: Boolean = false) {
-        setState(PrimaryButtonState.Processing)
+        _isProcessing.value = true
         viewModelScope.launch {
             linkAccountManager.listPaymentDetails().fold(
                 onSuccess = { response ->
-                    setState(PrimaryButtonState.Enabled)
                     val hasSavedCards =
                         response.paymentDetails.filterIsInstance<ConsumerPaymentDetails.Card>()
                             .takeIf { it.isNotEmpty() }?.let {
                                 _paymentDetails.value = it
+                                _isProcessing.value = false
                                 true
                             } ?: false
 
@@ -174,18 +180,13 @@ internal class WalletViewModel @Inject constructor(
     }
 
     private fun onError(error: ErrorMessage) {
-        setState(PrimaryButtonState.Enabled)
+        _isProcessing.value = false
         _errorMessage.value = error
     }
 
     private fun onFatal(fatalError: Throwable) {
         logger.error("Fatal error: ", fatalError)
         navigator.dismiss(LinkActivityResult.Failed(fatalError))
-    }
-
-    private fun setState(state: PrimaryButtonState) {
-        _primaryButtonState.value = state
-        navigator.backNavigationEnabled = !state.isBlocking
     }
 
     internal class Factory(

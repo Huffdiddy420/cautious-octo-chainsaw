@@ -9,8 +9,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import com.stripe.android.link.theme.DefaultLinkTheme
 import com.stripe.android.link.ui.ErrorMessage
-import com.stripe.android.link.ui.PrimaryButtonState
-import com.stripe.android.link.ui.completedIconTestTag
 import com.stripe.android.link.ui.progressIndicatorTestTag
 import org.junit.Rule
 import org.junit.Test
@@ -26,21 +24,15 @@ internal class PaymentMethodScreenTest {
 
     @Test
     fun primary_button_shows_progress_indicator_when_processing() {
-        setContent(primaryButtonState = PrimaryButtonState.Processing)
+        setContent(isProcessing = true)
         onProgressIndicator().assertExists()
-    }
-
-    @Test
-    fun primary_button_shows_checkmark_when_completed() {
-        setContent(primaryButtonState = PrimaryButtonState.Completed)
-        onCompletedIcon().assertExists()
     }
 
     @Test
     fun buttons_are_disabled_when_processing() {
         var count = 0
         setContent(
-            primaryButtonState = PrimaryButtonState.Processing,
+            isProcessing = true,
             onPayButtonClick = {
                 count++
             },
@@ -59,13 +51,14 @@ internal class PaymentMethodScreenTest {
     fun primary_button_does_not_trigger_event_when_disabled() {
         var count = 0
         setContent(
-            primaryButtonState = PrimaryButtonState.Processing,
+            isProcessing = false,
+            payButtonEnabled = false,
             onPayButtonClick = {
                 count++
             }
         )
 
-        onProgressIndicator().performClick()
+        onPrimaryButton().performClick()
 
         assertThat(count).isEqualTo(0)
     }
@@ -92,16 +85,18 @@ internal class PaymentMethodScreenTest {
     }
 
     private fun setContent(
-        primaryButtonState: PrimaryButtonState = PrimaryButtonState.Enabled,
+        isProcessing: Boolean = false,
+        payButtonEnabled: Boolean = false,
         errorMessage: ErrorMessage? = null,
         onPayButtonClick: () -> Unit = {},
         onSecondaryButtonClick: () -> Unit = {}
     ) = composeTestRule.setContent {
         DefaultLinkTheme {
             PaymentMethodBody(
+                isProcessing = isProcessing,
                 primaryButtonLabel = primaryButtonLabel,
-                primaryButtonState = primaryButtonState,
                 secondaryButtonLabel = secondaryButtonLabel,
+                primaryButtonEnabled = payButtonEnabled,
                 errorMessage = errorMessage,
                 onPrimaryButtonClick = onPayButtonClick,
                 onSecondaryButtonClick = onSecondaryButtonClick,
@@ -113,5 +108,4 @@ internal class PaymentMethodScreenTest {
     private fun onPrimaryButton() = composeTestRule.onNodeWithText(primaryButtonLabel)
     private fun onSecondaryButton() = composeTestRule.onNodeWithText(secondaryButtonLabel)
     private fun onProgressIndicator() = composeTestRule.onNodeWithTag(progressIndicatorTestTag)
-    private fun onCompletedIcon() = composeTestRule.onNodeWithTag(completedIconTestTag, true)
 }

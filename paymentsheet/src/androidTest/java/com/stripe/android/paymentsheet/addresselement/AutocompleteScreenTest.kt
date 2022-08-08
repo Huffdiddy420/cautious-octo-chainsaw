@@ -12,7 +12,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.stripe.android.paymentsheet.addresselement.analytics.AddressLauncherEventReporter
+import com.stripe.android.model.parsers.PaymentIntentJsonParser
+import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.ui.core.DefaultPaymentsTheme
 import com.stripe.android.ui.core.elements.autocomplete.PlacesClientProxy
 import com.stripe.android.ui.core.elements.autocomplete.model.AddressComponent
@@ -20,6 +21,7 @@ import com.stripe.android.ui.core.elements.autocomplete.model.AutocompletePredic
 import com.stripe.android.ui.core.elements.autocomplete.model.FetchPlaceResponse
 import com.stripe.android.ui.core.elements.autocomplete.model.FindAutocompletePredictionsResponse
 import com.stripe.android.ui.core.elements.autocomplete.model.Place
+import org.json.JSONObject
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,13 +32,54 @@ class AutocompleteScreenTest {
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
+    private val paymentIntent = requireNotNull(
+        PaymentIntentJsonParser().parse(
+            JSONObject(
+                """
+                {
+                    "id": "pi_1IRg6VCRMbs6F",
+                    "object": "payment_intent",
+                    "amount": 1099,
+                    "canceled_at": null,
+                    "cancellation_reason": null,
+                    "capture_method": "automatic",
+                    "client_secret": "pi_1IRg6VCRMbs6F_secret_7oH5g4v8GaCrHfsGYS6kiSnwF",
+                    "confirmation_method": "automatic",
+                    "created": 1614960135,
+                    "currency": "usd",
+                    "description": "Example PaymentIntent",
+                    "last_payment_error": null,
+                    "livemode": false,
+                    "next_action": null,
+                    "payment_method": "pm_1IJs3ZCRMbs",
+                    "payment_method_types": ["card"],
+                    "receipt_email": null,
+                    "setup_future_usage": null,
+                    "shipping": null,
+                    "source": null,
+                    "status": "succeeded"
+                }
+                """.trimIndent()
+            )
+        )
+    )
+
     private val args = AddressElementActivityContract.Args(
-        "publishableKey",
-        AddressLauncher.Configuration(),
-        "injectorKey"
+        paymentIntent,
+        PaymentSheet.Configuration(
+            merchantDisplayName = "Merchant, Inc.",
+            customer = PaymentSheet.CustomerConfiguration(
+                "customer_id",
+                "ephemeral_key"
+            )
+        ),
+        AddressElementActivityContract.Args.InjectionParams(
+            "injectorKey",
+            setOf("Product Usage"),
+            true
+        )
     )
     private val application = ApplicationProvider.getApplicationContext<Application>()
-    private val eventReporter = FakeEventReporter()
 
     @Test
     fun ensure_elements_exist() {
@@ -92,13 +135,12 @@ class AutocompleteScreenTest {
                     viewModel = AutocompleteViewModel(
                         args,
                         AddressElementNavigator(),
-                        mockClient,
-                        AutocompleteViewModel.Args(
-                            "US"
-                        ),
-                        eventReporter,
                         application
-                    )
+                    ).apply {
+                        initialize {
+                            mockClient
+                        }
+                    }
                 )
             }
         }
@@ -127,20 +169,6 @@ class AutocompleteScreenTest {
                     Place(addressComponents)
                 )
             )
-        }
-    }
-
-    private class FakeEventReporter : AddressLauncherEventReporter {
-        override fun onShow(country: String) {
-            // no-op
-        }
-
-        override fun onCompleted(
-            country: String,
-            autocompleteResultSelected: Boolean,
-            editDistance: Int?
-        ) {
-            // no-op
         }
     }
 }

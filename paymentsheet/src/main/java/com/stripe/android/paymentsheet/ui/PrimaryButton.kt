@@ -184,7 +184,6 @@ internal class PrimaryButton @JvmOverloads constructor(
             is State.FinishProcessing -> {
                 onFinishProcessing(state.onComplete)
             }
-            null -> {}
         }
     }
 

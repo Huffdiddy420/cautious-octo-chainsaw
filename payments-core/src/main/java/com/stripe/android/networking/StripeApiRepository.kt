@@ -57,7 +57,6 @@ import com.stripe.android.model.ListPaymentMethodsParams
 import com.stripe.android.model.PaymentIntent
 import com.stripe.android.model.PaymentMethod
 import com.stripe.android.model.PaymentMethodCreateParams
-import com.stripe.android.model.PaymentMethodPreference
 import com.stripe.android.model.RadarSession
 import com.stripe.android.model.SetupIntent
 import com.stripe.android.model.ShippingInformation
@@ -345,12 +344,12 @@ class StripeApiRepository @JvmOverloads internal constructor(
         clientSecret: String,
         options: ApiRequest.Options,
         locale: Locale
-    ): PaymentMethodPreference? = retrieveStripeIntentWithOrderedPaymentMethods(
+    ): PaymentIntent? = retrieveStripeIntentWithOrderedPaymentMethods(
         clientSecret,
         options,
         locale,
         parser = PaymentMethodPreferenceForPaymentIntentJsonParser(),
-        analyticsEvent = PaymentAnalyticsEvent.PaymentIntentRetrieveOrdered
+        analyticsEvent = PaymentAnalyticsEvent.PaymentIntentRetrieve
     )
 
     /**
@@ -484,12 +483,12 @@ class StripeApiRepository @JvmOverloads internal constructor(
         clientSecret: String,
         options: ApiRequest.Options,
         locale: Locale
-    ): PaymentMethodPreference? = retrieveStripeIntentWithOrderedPaymentMethods(
+    ): SetupIntent? = retrieveStripeIntentWithOrderedPaymentMethods(
         clientSecret,
         options,
         locale,
         parser = PaymentMethodPreferenceForSetupIntentJsonParser(),
-        analyticsEvent = PaymentAnalyticsEvent.SetupIntentRetrieveOrdered
+        analyticsEvent = PaymentAnalyticsEvent.SetupIntentRetrieve
     )
 
     /**
@@ -1202,7 +1201,6 @@ class StripeApiRepository @JvmOverloads internal constructor(
         email: String,
         phoneNumber: String,
         country: String,
-        locale: Locale?,
         authSessionCookie: String?,
         requestOptions: ApiRequest.Options
     ): ConsumerSession? {
@@ -1221,10 +1219,6 @@ class StripeApiRepository @JvmOverloads internal constructor(
                             "cookies" to
                                 mapOf("verification_session_client_secrets" to listOf(it))
                         )
-                    } ?: emptyMap()
-                ).plus(
-                    locale?.let {
-                        mapOf("locale" to it.toLanguageTag())
                     } ?: emptyMap()
                 )
             ),
@@ -1650,7 +1644,7 @@ class StripeApiRepository @JvmOverloads internal constructor(
         locale: Locale,
         parser: PaymentMethodPreferenceJsonParser<T>,
         analyticsEvent: PaymentAnalyticsEvent
-    ): PaymentMethodPreference? {
+    ): T? {
         // Unsupported for user key sessions.
         if (options.apiKeyIsUserKey) return null
 

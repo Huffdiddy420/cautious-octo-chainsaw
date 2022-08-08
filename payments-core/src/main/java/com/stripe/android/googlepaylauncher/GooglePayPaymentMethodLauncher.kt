@@ -3,15 +3,9 @@ package com.stripe.android.googlepaylauncher
 import android.content.Context
 import android.os.Parcelable
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultCaller
 import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.IntDef
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.stripe.android.BuildConfig
@@ -135,13 +129,10 @@ class GooglePayPaymentMethodLauncher @AssistedInject internal constructor(
     ) : this(
         activity,
         activity.lifecycleScope,
-        activity.registerForActivityResult(
-            GooglePayPaymentMethodLauncherContract()
-        ) {
-            resultCallback.onResult(it)
-        },
+        activity,
         config,
-        readyCallback
+        readyCallback,
+        resultCallback
     )
 
     /**
@@ -163,26 +154,28 @@ class GooglePayPaymentMethodLauncher @AssistedInject internal constructor(
     ) : this(
         fragment.requireContext(),
         fragment.viewLifecycleOwner.lifecycleScope,
-        fragment.registerForActivityResult(
-            GooglePayPaymentMethodLauncherContract()
-        ) {
-            resultCallback.onResult(it)
-        },
+        fragment,
         config,
-        readyCallback
+        readyCallback,
+        resultCallback
     )
 
     private constructor (
         context: Context,
         lifecycleScope: CoroutineScope,
-        activityResultLauncher: ActivityResultLauncher<GooglePayPaymentMethodLauncherContract.Args>,
+        activityResultCaller: ActivityResultCaller,
         config: Config,
-        readyCallback: ReadyCallback
+        readyCallback: ReadyCallback,
+        resultCallback: ResultCallback
     ) : this(
         lifecycleScope,
         config,
         readyCallback,
-        activityResultLauncher,
+        activityResultCaller.registerForActivityResult(
+            GooglePayPaymentMethodLauncherContract()
+        ) {
+            resultCallback.onResult(it)
+        },
         false,
         context,
         googlePayRepositoryFactory = {
@@ -383,42 +376,5 @@ class GooglePayPaymentMethodLauncher @AssistedInject internal constructor(
 
         // Error executing a network call
         const val NETWORK_ERROR = 3
-
-        /**
-         * Create a [GooglePayPaymentMethodLauncher] used for Jetpack Compose.
-         *
-         * This API uses Compose specific API [rememberLauncherForActivityResult] to register a
-         * [ActivityResultLauncher] into current activity, it should be called as part of Compose
-         * initialization path.
-         * The GooglePayPaymentMethodLauncher created is remembered across recompositions.
-         * Recomposition will always return the value produced by composition.
-         */
-        @Composable
-        fun rememberLauncher(
-            config: Config,
-            readyCallback: ReadyCallback,
-            resultCallback: ResultCallback
-        ): GooglePayPaymentMethodLauncher {
-            val currentReadyCallback by rememberUpdatedState(readyCallback)
-
-            val context = LocalContext.current
-            val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
-            val activityResultLauncher = rememberLauncherForActivityResult(
-                GooglePayPaymentMethodLauncherContract(),
-                resultCallback::onResult
-            )
-
-            return remember(config) {
-                GooglePayPaymentMethodLauncher(
-                    context = context,
-                    lifecycleScope = lifecycleScope,
-                    activityResultLauncher = activityResultLauncher,
-                    config = config,
-                    readyCallback = {
-                        currentReadyCallback.onReady(it)
-                    }
-                )
-            }
-        }
     }
 }

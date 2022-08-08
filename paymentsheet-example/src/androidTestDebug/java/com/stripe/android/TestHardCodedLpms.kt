@@ -48,12 +48,8 @@ class TestHardCodedLpms {
         private val screenshotProcessor = MyScreenCaptureProcessor()
 
         private val lpmRepository = LpmRepository(
-            LpmRepository.LpmRepositoryArguments(
-                InstrumentationRegistry.getInstrumentation().targetContext.resources
-            )
-        ).apply {
-            forceUpdate(LpmRepository.exposedPaymentMethods, null)
-        }
+            InstrumentationRegistry.getInstrumentation().targetContext.resources
+        )
     }
 
     @Before

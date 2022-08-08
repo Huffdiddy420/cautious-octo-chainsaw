@@ -42,8 +42,9 @@ private fun PaymentMethodBodyPreview() {
     DefaultLinkTheme {
         Surface {
             PaymentMethodBody(
+                isProcessing = false,
                 primaryButtonLabel = "Pay $10.99",
-                primaryButtonState = PrimaryButtonState.Enabled,
+                primaryButtonEnabled = true,
                 secondaryButtonLabel = "Cancel",
                 errorMessage = null,
                 onPrimaryButtonClick = {},
@@ -77,16 +78,16 @@ internal fun PaymentMethodBody(
     } else {
         formController?.let {
             val formValues by it.completeFormValues.collectAsState(null)
-            val primaryButtonState by viewModel.primaryButtonState.collectAsState()
+            val isProcessing by viewModel.isProcessing.collectAsState()
             val errorMessage by viewModel.errorMessage.collectAsState()
 
             PaymentMethodBody(
+                isProcessing = isProcessing,
                 primaryButtonLabel = primaryButtonLabel(
                     viewModel.args,
                     LocalContext.current.resources
                 ),
-                primaryButtonState = primaryButtonState.takeIf { formValues != null }
-                    ?: PrimaryButtonState.Disabled,
+                primaryButtonEnabled = formValues != null,
                 secondaryButtonLabel = stringResource(id = viewModel.secondaryButtonLabel),
                 errorMessage = errorMessage,
                 onPrimaryButtonClick = {
@@ -107,8 +108,9 @@ internal fun PaymentMethodBody(
 
 @Composable
 internal fun PaymentMethodBody(
+    isProcessing: Boolean,
     primaryButtonLabel: String,
-    primaryButtonState: PrimaryButtonState,
+    primaryButtonEnabled: Boolean,
     secondaryButtonLabel: String,
     errorMessage: ErrorMessage?,
     onPrimaryButtonClick: () -> Unit,
@@ -133,12 +135,16 @@ internal fun PaymentMethodBody(
         }
         PrimaryButton(
             label = primaryButtonLabel,
-            state = primaryButtonState,
+            state = when {
+                isProcessing -> PrimaryButtonState.Processing
+                primaryButtonEnabled -> PrimaryButtonState.Enabled
+                else -> PrimaryButtonState.Disabled
+            },
             icon = R.drawable.stripe_ic_lock,
             onButtonClick = onPrimaryButtonClick
         )
         SecondaryButton(
-            enabled = !primaryButtonState.isBlocking,
+            enabled = !isProcessing,
             label = secondaryButtonLabel,
             onClick = onSecondaryButtonClick
         )

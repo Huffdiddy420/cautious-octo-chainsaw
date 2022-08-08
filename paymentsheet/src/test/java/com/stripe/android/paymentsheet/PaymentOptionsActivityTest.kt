@@ -15,7 +15,6 @@ import com.stripe.android.PaymentConfiguration
 import com.stripe.android.R
 import com.stripe.android.core.Logger
 import com.stripe.android.core.injection.DUMMY_INJECTOR_KEY
-import com.stripe.android.model.PaymentMethod
 import com.stripe.android.model.PaymentMethodFixtures
 import com.stripe.android.paymentsheet.PaymentOptionsViewModel.TransitionTarget
 import com.stripe.android.paymentsheet.PaymentSheetFixtures.PAYMENT_OPTIONS_CONTRACT_ARGS
@@ -403,11 +402,6 @@ class PaymentOptionsActivityTest {
     private fun createViewModel(
         args: PaymentOptionContract.Args = PAYMENT_OPTIONS_CONTRACT_ARGS
     ): PaymentOptionsViewModel {
-        val lpmRepository = LpmRepository(
-            LpmRepository.LpmRepositoryArguments(ApplicationProvider.getApplicationContext<Application>().resources)
-        ).apply {
-            this.forceUpdate(listOf(PaymentMethod.Type.Card.code, PaymentMethod.Type.USBankAccount.code), null)
-        }
         return PaymentOptionsViewModel(
             args = args,
             prefsRepositoryFactory = { FakePrefsRepository() },
@@ -421,7 +415,7 @@ class PaymentOptionsActivityTest {
                 AddressFieldElementRepository(
                     ApplicationProvider.getApplicationContext<Context>().resources
                 ),
-                lpmRepository
+                LpmRepository(ApplicationProvider.getApplicationContext<Application>().resources)
             ),
             savedStateHandle = SavedStateHandle(),
             linkPaymentLauncherFactory = mock()

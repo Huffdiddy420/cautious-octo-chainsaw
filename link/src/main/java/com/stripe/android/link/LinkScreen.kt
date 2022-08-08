@@ -44,4 +44,5 @@ internal sealed class LinkScreen(
     }
 }
 
-private fun String.urlEncode(): String = URLEncoder.encode(this, StandardCharsets.UTF_8.name())
+private fun String.urlEncode(): String =
+    URLEncoder.encode(this, StandardCharsets.UTF_8.toString())

@@ -18,7 +18,6 @@ internal class DefaultPrefsRepositoryTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private var isGooglePayReady = true
-    private var isLinkAvailable = true
     private val prefsRepository = DefaultPrefsRepository(
         ApplicationProvider.getApplicationContext(),
         "cus_123",
@@ -31,7 +30,7 @@ internal class DefaultPrefsRepositoryTest {
             PaymentSelection.GooglePay
         )
         assertThat(
-            prefsRepository.getSavedSelection(isGooglePayReady, isLinkAvailable)
+            prefsRepository.getSavedSelection(isGooglePayReady)
         ).isEqualTo(
             SavedSelection.GooglePay
         )
@@ -46,22 +45,7 @@ internal class DefaultPrefsRepositoryTest {
                 PaymentSelection.GooglePay
             )
             assertThat(
-                prefsRepository.getSavedSelection(isGooglePayReady, isLinkAvailable)
-            ).isEqualTo(
-                SavedSelection.None
-            )
-        }
-
-    @Test
-    fun `save then get Link should return None if Link is not available`() =
-        runTest {
-            isLinkAvailable = false
-
-            prefsRepository.savePaymentSelection(
-                PaymentSelection.Link
-            )
-            assertThat(
-                prefsRepository.getSavedSelection(isGooglePayReady, isLinkAvailable)
+                prefsRepository.getSavedSelection(isGooglePayReady)
             ).isEqualTo(
                 SavedSelection.None
             )
@@ -75,7 +59,7 @@ internal class DefaultPrefsRepositoryTest {
             )
         )
         assertThat(
-            prefsRepository.getSavedSelection(isGooglePayReady, isLinkAvailable)
+            prefsRepository.getSavedSelection(isGooglePayReady)
         ).isEqualTo(
             SavedSelection.PaymentMethod(
                 id = "pm_123456789"
