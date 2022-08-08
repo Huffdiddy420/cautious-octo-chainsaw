@@ -1,0 +1,24 @@
+enableFeaturePreview("VERSION_CATALOGS")
+
+include ':example'
+include ':link'
+include ':payments'
+include ':payments-core'
+include ':paymentsheet-example'
+include ':paymentsheet'
+include ':stripecardscan'
+include ':stripecardscan-example'
+include ':stripe-core'
+include ':stripe-ui-core'
+include ':stripe-test-e2e'
+include ':wechatpay'
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        create("libraries") {
+            from(files(
+                    "gradle/androidx.versions.toml"
+            ))
+        }
+    }
+}
