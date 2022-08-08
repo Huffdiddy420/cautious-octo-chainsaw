@@ -48,6 +48,7 @@ import kotlin.test.BeforeTest
 class SignUpViewModelTest {
     private val defaultArgs = LinkActivityContract.Args(
         StripeIntentFixtures.PI_SUCCEEDED,
+        true,
         MERCHANT_NAME,
         CUSTOMER_EMAIL,
         CUSTOMER_PHONE,

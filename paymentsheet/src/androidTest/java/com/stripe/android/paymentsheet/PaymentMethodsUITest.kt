@@ -201,11 +201,7 @@ internal class PaymentMethodsUITest {
 
     companion object {
         val lpmRepository =
-            LpmRepository(
-                LpmRepository.LpmRepositoryArguments(
-                    InstrumentationRegistry.getInstrumentation().targetContext.resources
-                )
-            )
+            LpmRepository(InstrumentationRegistry.getInstrumentation().targetContext.resources)
         val USBankAccount = lpmRepository.fromCode("us_bank_account")!!
         val Eps = lpmRepository.fromCode("eps")!!
         val Sofort = lpmRepository.fromCode("sofort")!!

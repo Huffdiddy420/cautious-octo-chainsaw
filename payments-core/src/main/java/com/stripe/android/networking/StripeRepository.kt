@@ -27,7 +27,6 @@ import com.stripe.android.model.ListPaymentMethodsParams
 import com.stripe.android.model.PaymentIntent
 import com.stripe.android.model.PaymentMethod
 import com.stripe.android.model.PaymentMethodCreateParams
-import com.stripe.android.model.PaymentMethodPreference
 import com.stripe.android.model.RadarSession
 import com.stripe.android.model.SetupIntent
 import com.stripe.android.model.ShippingInformation
@@ -90,7 +89,7 @@ abstract class StripeRepository {
         clientSecret: String,
         options: ApiRequest.Options,
         locale: Locale
-    ): PaymentMethodPreference?
+    ): PaymentIntent?
 
     @Throws(
         AuthenticationException::class,
@@ -152,7 +151,7 @@ abstract class StripeRepository {
         clientSecret: String,
         options: ApiRequest.Options,
         locale: Locale
-    ): PaymentMethodPreference?
+    ): SetupIntent?
 
     @Throws(
         AuthenticationException::class,
@@ -406,12 +405,10 @@ abstract class StripeRepository {
     ): ConsumerSessionLookup?
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @Suppress("LongParameterList")
     abstract suspend fun consumerSignUp(
         email: String,
         phoneNumber: String,
         country: String,
-        locale: Locale?,
         authSessionCookie: String?,
         requestOptions: ApiRequest.Options
     ): ConsumerSession?

@@ -78,6 +78,7 @@ internal abstract class BaseSheetActivity<ResultType> : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel.registerFromActivity(this)
 
         if (Build.VERSION.SDK_INT != Build.VERSION_CODES.O) {
             // In Oreo, Activities where `android:windowIsTranslucent=true` can't request
@@ -179,6 +180,11 @@ internal abstract class BaseSheetActivity<ResultType> : AppCompatActivity() {
         } else {
             viewModel.onUserCancel()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        viewModel.unregisterFromActivity()
     }
 
     protected fun closeSheet(

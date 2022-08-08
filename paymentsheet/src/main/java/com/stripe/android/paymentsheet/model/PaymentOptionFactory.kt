@@ -18,12 +18,6 @@ internal class PaymentOptionFactory(
                     label = resources.getString(R.string.google_pay)
                 )
             }
-            PaymentSelection.Link -> {
-                PaymentOption(
-                    drawableResourceId = R.drawable.stripe_ic_paymentsheet_link,
-                    label = resources.getString(R.string.link)
-                )
-            }
             is PaymentSelection.Saved -> {
                 PaymentOption(
                     drawableResourceId = selection.paymentMethod.getSavedPaymentMethodIcon() ?: 0,
@@ -40,10 +34,13 @@ internal class PaymentOptionFactory(
                     )
                 )
             }
-            is PaymentSelection.New.LinkInline -> {
+            is PaymentSelection.New.Link -> {
                 PaymentOption(
                     drawableResourceId = selection.iconResource,
-                    label = selection.label
+                    label = createCardLabel(
+                        resources,
+                        selection.label
+                    )
                 )
             }
             is PaymentSelection.New.GenericPaymentMethod -> {

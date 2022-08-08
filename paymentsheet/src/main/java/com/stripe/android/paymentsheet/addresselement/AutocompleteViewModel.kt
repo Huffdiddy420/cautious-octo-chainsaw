@@ -7,9 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.stripe.android.paymentsheet.R
-import com.stripe.android.paymentsheet.addresselement.analytics.AddressLauncherEventReporter
 import com.stripe.android.ui.core.injection.NonFallbackInjectable
-import com.stripe.android.paymentsheet.injection.AutocompleteViewModelSubcomponent
+import com.stripe.android.paymentsheet.injection.AutoCompleteViewModelSubcomponent
 import com.stripe.android.ui.core.elements.SimpleTextFieldConfig
 import com.stripe.android.ui.core.elements.SimpleTextFieldController
 import com.stripe.android.ui.core.elements.TextFieldIcon
@@ -25,21 +24,18 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.lang.IllegalStateException
 import javax.inject.Inject
 import javax.inject.Provider
 
 internal class AutocompleteViewModel @Inject constructor(
     val args: AddressElementActivityContract.Args,
     val navigator: AddressElementNavigator,
-    private val placesClient: PlacesClientProxy?,
-    private val autocompleteArgs: Args,
-    private val eventReporter: AddressLauncherEventReporter,
     application: Application
 ) : AndroidViewModel(application) {
+    private var client: PlacesClientProxy? = null
+
     private val _predictions = MutableStateFlow<List<AutocompletePrediction>?>(null)
     val predictions: StateFlow<List<AutocompletePrediction>?>
         get() = _predictions
@@ -49,14 +45,20 @@ internal class AutocompleteViewModel @Inject constructor(
         get() = _loading
 
     @VisibleForTesting
-    val addressResult = MutableStateFlow<Result<AddressDetails?>?>(null)
+    val addressResult = MutableStateFlow<Result<ShippingAddress?>?>(null)
 
-    private val config = SimpleTextFieldConfig(
-        label = R.string.address_label_address,
-        trailingIcon = MutableStateFlow(null)
+    val textFieldController = SimpleTextFieldController(
+        SimpleTextFieldConfig(
+            label = R.string.address_label_address,
+            trailingIcon = MutableStateFlow(
+                TextFieldIcon.Trailing(
+                    idRes = R.drawable.stripe_ic_clear,
+                    isTintable = true,
+                    onClick = { clearQuery() }
+                )
+            )
+        )
     )
-
-    val textFieldController = SimpleTextFieldController(config)
 
     private val queryFlow = textFieldController.fieldValue
         .map { it }
@@ -64,16 +66,24 @@ internal class AutocompleteViewModel @Inject constructor(
 
     private val debouncer = Debouncer()
 
-    init {
+    fun initialize(
+        clientProvider: () -> PlacesClientProxy? = {
+            // TODO: Update the PaymentSheet Configuration to include api key
+            // args.config?.googlePlacesApiKey?.let {
+            //     PlacesClientProxy.create(getApplication(), it)
+            // }
+            PlacesClientProxy.create(getApplication(), "")
+        }
+    ) {
+        client = clientProvider()
         debouncer.startWatching(
             coroutineScope = viewModelScope,
             queryFlow = queryFlow,
             onValidQuery = {
                 viewModelScope.launch {
-                    placesClient?.findAutocompletePredictions(
+                    client?.findAutocompletePredictions(
                         query = it,
-                        country = autocompleteArgs.country
-                            ?: throw IllegalStateException("Country cannot be empty"),
+                        country = "US",
                         limit = MAX_DISPLAYED_RESULTS
                     )?.fold(
                         onSuccess = {
@@ -88,39 +98,19 @@ internal class AutocompleteViewModel @Inject constructor(
                 }
             }
         )
-        viewModelScope.launch {
-            queryFlow.collect {
-                if (it.isEmpty()) {
-                    config.trailingIcon.update {
-                        null
-                    }
-                } else {
-                    config.trailingIcon.update {
-                        TextFieldIcon.Trailing(
-                            idRes = R.drawable.stripe_ic_clear,
-                            isTintable = true,
-                            onClick = { clearQuery() }
-                        )
-                    }
-                }
-            }
-        }
-        autocompleteArgs.country?.let { country ->
-            eventReporter.onShow(country)
-        }
     }
 
     fun selectPrediction(prediction: AutocompletePrediction) {
         viewModelScope.launch {
             _loading.value = true
-            placesClient?.fetchPlace(
+            client?.fetchPlace(
                 placeId = prediction.placeId
             )?.fold(
                 onSuccess = {
                     _loading.value = false
                     val address = it.place.transformGoogleToStripeAddress(getApplication())
                     addressResult.value = Result.success(
-                        AddressDetails(
+                        ShippingAddress(
                             city = address.city,
                             country = address.country,
                             line1 = address.line1,
@@ -140,39 +130,19 @@ internal class AutocompleteViewModel @Inject constructor(
         }
     }
 
-    fun onBackPressed() {
-        val result = if (queryFlow.value.isNotBlank()) {
-            AddressDetails(
-                line1 = queryFlow.value
-            )
-        } else {
-            null
-        }
-        setResultAndGoBack(result)
-    }
-
     fun onEnterAddressManually() {
-        setResultAndGoBack(
-            AddressDetails(
-                line1 = queryFlow.value
-            )
-        )
+        setResultAndGoBack()
     }
 
-    private fun setResultAndGoBack(addressDetails: AddressDetails? = null) {
-        if (addressDetails != null) {
-            navigator.setResult(AddressDetails.KEY, addressDetails)
-        } else {
-            addressResult.value?.fold(
-                onSuccess = {
-                    navigator.setResult(AddressDetails.KEY, it)
-                },
-                onFailure = {
-                    navigator.setResult(AddressDetails.KEY, null)
-                }
-            )
-        }
-
+    fun setResultAndGoBack() {
+        addressResult.value?.fold(
+            onSuccess = {
+                navigator.setResult(ShippingAddress.KEY, it)
+            },
+            onFailure = {
+                navigator.setResult(ShippingAddress.KEY, null)
+            }
+        )
         navigator.onBack()
     }
 
@@ -208,27 +178,21 @@ internal class AutocompleteViewModel @Inject constructor(
 
     internal class Factory(
         private val injector: NonFallbackInjector,
-        private val args: Args,
         private val applicationSupplier: () -> Application
     ) : ViewModelProvider.Factory, NonFallbackInjectable {
 
         @Inject
         lateinit var subComponentBuilderProvider:
-            Provider<AutocompleteViewModelSubcomponent.Builder>
+            Provider<AutoCompleteViewModelSubcomponent.Builder>
 
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             injector.inject(this)
             return subComponentBuilderProvider.get()
                 .application(applicationSupplier())
-                .configuration(args)
                 .build().autoCompleteViewModel as T
         }
     }
-
-    data class Args(
-        val country: String?
-    )
 
     companion object {
         const val SEARCH_DEBOUNCE_MS = 1000L

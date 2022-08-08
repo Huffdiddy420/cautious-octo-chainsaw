@@ -8,9 +8,7 @@ import com.stripe.android.StripeIntentResult
 import com.stripe.android.core.Logger
 import com.stripe.android.core.exception.MaxRetryReachedException
 import com.stripe.android.core.networking.ApiRequest
-import com.stripe.android.model.PaymentIntent
 import com.stripe.android.model.PaymentIntentFixtures
-import com.stripe.android.model.StripeIntent
 import com.stripe.android.networking.StripeRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -18,7 +16,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.any
-import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -40,7 +37,8 @@ internal class PaymentIntentFlowResultProcessorTest {
         { ApiKeyFixtures.FAKE_PUBLISHABLE_KEY },
         mockStripeRepository,
         Logger.noop(),
-        testDispatcher
+        testDispatcher,
+        mock()
     )
 
     @Test
@@ -184,7 +182,7 @@ internal class PaymentIntentFlowResultProcessorTest {
 
     @Test
     fun `refresh reaches max retry user confirms the payment`() =
-        runTest(testDispatcher) {
+        runTest {
             whenever(mockStripeRepository.retrievePaymentIntent(any(), any(), any())).thenReturn(
                 PaymentIntentFixtures.PI_REQUIRES_WECHAT_PAY_AUTHORIZE
             )
@@ -212,127 +210,10 @@ internal class PaymentIntentFlowResultProcessorTest {
 
             verify(
                 mockStripeRepository,
-                times(PaymentFlowResultProcessor.MAX_RETRIES)
+                times(PaymentIntentFlowResultProcessor.MAX_RETRIES)
             ).refreshPaymentIntent(
                 eq(clientSecret),
                 eq(requestOptions)
             )
         }
-
-    @Test
-    fun `3ds2 canceled with processing intent should succeed`() =
-        runTest {
-            val initialIntent = PaymentIntentFixtures.PI_VISA_3DS2.copy(
-                status = StripeIntent.Status.Processing
-            )
-            val refreshedIntent = PaymentIntentFixtures.PI_VISA_3DS2.copy(
-                status = StripeIntent.Status.Succeeded
-            )
-            runCanceledFlow(
-                initialIntent = initialIntent,
-                refreshedIntent = refreshedIntent
-            )
-        }
-
-    @Test
-    fun `3ds2 canceled with requires capture intent should succeed`() =
-        runTest {
-            val initialIntent = PaymentIntentFixtures.PI_VISA_3DS2.copy(
-                status = StripeIntent.Status.Processing
-            )
-            val refreshedIntent = PaymentIntentFixtures.PI_VISA_3DS2.copy(
-                status = StripeIntent.Status.RequiresCapture
-            )
-            runCanceledFlow(
-                initialIntent = initialIntent,
-                refreshedIntent = refreshedIntent
-            )
-        }
-
-    @Test
-    fun `3ds2 canceled with succeeded intent should succeed`() =
-        runTest {
-            runCanceledFlow(
-                initialIntent = PaymentIntentFixtures.PI_VISA_3DS2.copy(
-                    status = StripeIntent.Status.Succeeded
-                )
-            )
-        }
-
-    @Test
-    fun `3ds2 canceled reaches max retry with processing intent should cancel`() =
-        runTest(testDispatcher) {
-            val intent = PaymentIntentFixtures.PI_VISA_3DS2.copy(
-                status = StripeIntent.Status.RequiresAction
-            )
-            whenever(mockStripeRepository.retrievePaymentIntent(any(), any(), any())).thenReturn(
-                intent
-            )
-
-            val clientSecret = requireNotNull(
-                intent.clientSecret
-            )
-            val requestOptions = ApiRequest.Options(apiKey = ApiKeyFixtures.FAKE_PUBLISHABLE_KEY)
-
-            val result = processor.processResult(
-                PaymentFlowResult.Unvalidated(
-                    clientSecret = clientSecret,
-                    flowOutcome = StripeIntentResult.Outcome.CANCELED
-                )
-            )
-
-            verify(
-                mockStripeRepository,
-                times(PaymentFlowResultProcessor.MAX_RETRIES + 1)
-            ).retrievePaymentIntent(
-                eq(clientSecret),
-                eq(requestOptions),
-                eq(PaymentFlowResultProcessor.EXPAND_PAYMENT_METHOD)
-            )
-
-            assertThat(result)
-                .isEqualTo(
-                    PaymentIntentResult(
-                        intent,
-                        StripeIntentResult.Outcome.CANCELED,
-                        null
-                    )
-                )
-        }
-
-    private suspend fun runCanceledFlow(
-        initialIntent: PaymentIntent,
-        refreshedIntent: PaymentIntent = initialIntent,
-        expectedIntent: PaymentIntent = refreshedIntent
-    ) {
-        whenever(mockStripeRepository.retrievePaymentIntent(any(), any(), any())).thenReturn(
-            initialIntent,
-            refreshedIntent
-        )
-
-        val clientSecret = requireNotNull(initialIntent.clientSecret)
-        val requestOptions = ApiRequest.Options(apiKey = ApiKeyFixtures.FAKE_PUBLISHABLE_KEY)
-
-        val result = processor.processResult(
-            PaymentFlowResult.Unvalidated(
-                clientSecret = clientSecret,
-                flowOutcome = StripeIntentResult.Outcome.CANCELED
-            )
-        )
-
-        verify(mockStripeRepository, atLeastOnce()).retrievePaymentIntent(
-            eq(clientSecret),
-            eq(requestOptions),
-            eq(PaymentFlowResultProcessor.EXPAND_PAYMENT_METHOD)
-        )
-
-        assertThat(result)
-            .isEqualTo(
-                PaymentIntentResult(
-                    expectedIntent,
-                    StripeIntentResult.Outcome.SUCCEEDED,
-                    null
-                )
-            )
-    }
 }

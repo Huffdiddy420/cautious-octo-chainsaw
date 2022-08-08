@@ -5,7 +5,6 @@
     <application>
         <activity
             android:name=".LinkActivity"
-            android:theme="@style/LinkBaseTheme"
             android:exported="false"
             android:label="@string/link" />
     </application>

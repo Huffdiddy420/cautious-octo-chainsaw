@@ -84,18 +84,7 @@ internal class PaymentSheetViewModelTest {
     private val eventReporter = mock<EventReporter>()
     private val viewModel: PaymentSheetViewModel by lazy { createViewModel() }
     private val application = ApplicationProvider.getApplicationContext<Application>()
-    private val lpmRepository = LpmRepository(LpmRepository.LpmRepositoryArguments(application.resources)).apply {
-        this.forceUpdate(
-            listOf(
-                PaymentMethod.Type.Card.code,
-                PaymentMethod.Type.USBankAccount.code,
-                PaymentMethod.Type.Ideal.code,
-                PaymentMethod.Type.SepaDebit.code,
-                PaymentMethod.Type.Sofort.code
-            ),
-            null
-        )
-    }
+    private val lpmRepository = LpmRepository(application.resources)
     private val prefsRepository = FakePrefsRepository()
     private val resourceRepository = StaticResourceRepository(mock(), lpmRepository)
 
@@ -497,7 +486,7 @@ internal class PaymentSheetViewModelTest {
 
             assertThat(prefsRepository.paymentSelectionArgs)
                 .containsExactly(selection)
-            assertThat(prefsRepository.getSavedSelection(true, true))
+            assertThat(prefsRepository.getSavedSelection(true))
                 .isEqualTo(
                     SavedSelection.PaymentMethod(selection.paymentMethod.id.orEmpty())
                 )
@@ -545,7 +534,7 @@ internal class PaymentSheetViewModelTest {
                         PAYMENT_INTENT_RESULT_WITH_PM.intent.paymentMethod!!
                     )
                 )
-            assertThat(prefsRepository.getSavedSelection(true, true))
+            assertThat(prefsRepository.getSavedSelection(true))
                 .isEqualTo(
                     SavedSelection.PaymentMethod(
                         PAYMENT_INTENT_RESULT_WITH_PM.intent.paymentMethod!!.id!!
@@ -575,7 +564,6 @@ internal class PaymentSheetViewModelTest {
     fun `onPaymentResult() should update emit API errors`() =
         runTest {
             viewModel.maybeFetchStripeIntent()
-            idleLooper()
 
             val viewStateList = mutableListOf<PaymentSheetViewState>()
             viewModel.viewState.observeForever {
@@ -604,7 +592,6 @@ internal class PaymentSheetViewModelTest {
             viewState = it
         }
         viewModel.maybeFetchStripeIntent()
-        idleLooper()
         assertThat(viewState)
             .isEqualTo(
                 PaymentSheetViewState.Reset(null)
@@ -649,7 +636,6 @@ internal class PaymentSheetViewModelTest {
             result = it
         }
         viewModel.maybeFetchStripeIntent()
-        idleLooper()
         assertThat((result as? PaymentSheetResult.Failed)?.error?.message)
             .isEqualTo("Could not parse PaymentIntent.")
     }
@@ -668,7 +654,6 @@ internal class PaymentSheetViewModelTest {
             result = it
         }
         viewModel.maybeFetchStripeIntent()
-        idleLooper()
         assertThat((result as? PaymentSheetResult.Failed)?.error?.message)
             .isEqualTo(
                 "PaymentIntent with confirmation_method='automatic' is required.\n" +
@@ -689,7 +674,6 @@ internal class PaymentSheetViewModelTest {
             result = it
         }
         viewModel.maybeFetchStripeIntent()
-        idleLooper()
         assertThat((result as? PaymentSheetResult.Failed)?.error?.message)
             .isEqualTo(
                 "PaymentSheet cannot set up a PaymentIntent in status 'succeeded'.\n" +
@@ -829,8 +813,6 @@ internal class PaymentSheetViewModelTest {
             }
         }
 
-        idleLooper()
-
         assertThat(configs)
             .hasSize(1)
     }
@@ -852,7 +834,6 @@ internal class PaymentSheetViewModelTest {
             .isFalse()
 
         viewModel.maybeFetchStripeIntent()
-        idleLooper()
         assertThat(isEnabled)
             .isTrue()
 

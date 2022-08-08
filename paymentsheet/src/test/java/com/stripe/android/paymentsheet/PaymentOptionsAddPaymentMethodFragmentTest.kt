@@ -11,7 +11,6 @@ import com.stripe.android.PaymentConfiguration
 import com.stripe.android.core.injection.DUMMY_INJECTOR_KEY
 import com.stripe.android.core.injection.WeakMapInjectorRegistry
 import com.stripe.android.model.PaymentIntentFixtures
-import com.stripe.android.model.PaymentMethod
 import com.stripe.android.paymentsheet.databinding.FragmentPaymentsheetAddPaymentMethodBinding
 import com.stripe.android.paymentsheet.model.FragmentConfig
 import com.stripe.android.paymentsheet.model.FragmentConfigFixtures
@@ -31,9 +30,7 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 internal class PaymentOptionsAddPaymentMethodFragmentTest : PaymentOptionsViewModelTestInjection() {
     private val context: Context = ApplicationProvider.getApplicationContext()
-    private val lpmRepository = LpmRepository(LpmRepository.LpmRepositoryArguments(context.resources)).apply {
-        this.forceUpdate(listOf(PaymentMethod.Type.Card.code), null)
-    }
+    private val lpmRepository = LpmRepository(context.resources)
 
     @Before
     fun setup() {
@@ -97,7 +94,6 @@ internal class PaymentOptionsAddPaymentMethodFragmentTest : PaymentOptionsViewMo
             ),
             R.style.StripePaymentSheetDefaultTheme
         ).onFragment { fragment ->
-            fragment.sheetViewModel.resourceRepository.getLpmRepository().updateFromDisk()
             onReady(
                 fragment,
                 FragmentPaymentsheetAddPaymentMethodBinding.bind(

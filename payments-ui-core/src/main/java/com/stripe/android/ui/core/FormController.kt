@@ -8,7 +8,6 @@ import com.stripe.android.ui.core.elements.SectionElement
 import com.stripe.android.ui.core.forms.TransformSpecToElements
 import com.stripe.android.ui.core.forms.resources.ResourceRepository
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -42,11 +41,9 @@ class FormController @Inject constructor(
         } else {
             val delayedElements = MutableStateFlow<List<FormElement>?>(null)
             viewModelScope.launch {
-                CoroutineScope(Dispatchers.IO).launch {
-                    resourceRepository.waitUntilLoaded()
-                    delayedElements.value =
-                        transformSpecToElement.transform(formSpec.items)
-                }
+                resourceRepository.waitUntilLoaded()
+                delayedElements.value = transformSpecToElement
+                    .transform(formSpec.items)
             }
             this.elements = delayedElements
         }

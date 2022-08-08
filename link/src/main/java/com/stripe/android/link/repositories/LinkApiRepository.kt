@@ -72,7 +72,6 @@ internal class LinkApiRepository @Inject constructor(
                 email,
                 phone,
                 country,
-                locale,
                 authSessionCookie,
                 ApiRequest.Options(
                     publishableKeyProvider(),
@@ -217,7 +216,7 @@ internal class LinkApiRepository @Inject constructor(
         stripeIntent: StripeIntent,
         consumerSessionClientSecret: String,
         consumerPublishableKey: String?
-    ): Result<LinkPaymentDetails.New> = withContext(workContext) {
+    ): Result<LinkPaymentDetails> = withContext(workContext) {
         runCatching {
             stripeRepository.createPaymentDetails(
                 consumerSessionClientSecret,

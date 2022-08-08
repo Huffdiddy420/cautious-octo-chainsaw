@@ -61,7 +61,7 @@ internal class ConfirmSetupIntentParamsFactory(
 ) : ConfirmStripeIntentParamsFactory<ConfirmSetupIntentParams>() {
     override fun createConfirmStripeIntentParams(
         paymentMethodCreateParams: PaymentMethodCreateParams
-    ) = ConfirmSetupIntentParams.create(
+    ) = ConfirmSetupIntentParams.Companion.create(
         paymentMethodCreateParams,
         setupIntent.clientSecret!!
     )

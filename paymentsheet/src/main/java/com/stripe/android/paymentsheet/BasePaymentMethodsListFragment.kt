@@ -70,7 +70,6 @@ internal abstract class BasePaymentMethodsListFragment(
             getString(R.string.stripe_paymentsheet_select_payment_method)
     }
 
-    @Deprecated("Deprecated in Java")
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.paymentsheet_payment_methods_list, menu)
         // Menu is created after view state is restored, so we need to update the title here
@@ -96,7 +95,6 @@ internal abstract class BasePaymentMethodsListFragment(
         }
     }
 
-    @Deprecated("Deprecated in Java")
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.edit -> {
@@ -132,7 +130,8 @@ internal abstract class BasePaymentMethodsListFragment(
             canClickSelectedItem,
             paymentOptionSelectedListener = ::onPaymentOptionSelected,
             paymentMethodDeleteListener = ::deletePaymentMethod,
-            addCardClickListener = ::transitionToAddPaymentMethod
+            addCardClickListener = ::transitionToAddPaymentMethod,
+            linkClickListener = sheetViewModel::launchLink
         ).also {
             viewBinding.recycler.adapter = it
         }

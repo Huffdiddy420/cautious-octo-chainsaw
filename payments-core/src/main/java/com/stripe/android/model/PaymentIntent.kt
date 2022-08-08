@@ -1,7 +1,6 @@
 package com.stripe.android.model
 
 import androidx.annotation.RestrictTo
-import com.stripe.android.core.model.StripeJsonUtils
 import com.stripe.android.core.model.StripeModel
 import com.stripe.android.model.PaymentIntent.CaptureMethod
 import com.stripe.android.model.PaymentIntent.ConfirmationMethod
@@ -137,16 +136,8 @@ data class PaymentIntent internal constructor(
      */
     override val unactivatedPaymentMethods: List<String>,
 
-    override val nextActionData: StripeIntent.NextActionData? = null,
-
-    private val paymentMethodOptionsJsonString: String? = null
-
+    override val nextActionData: StripeIntent.NextActionData? = null
 ) : StripeIntent {
-
-    fun getPaymentMethodOptions() = paymentMethodOptionsJsonString?.let {
-        StripeJsonUtils.jsonObjectToMap(JSONObject(it))
-    } ?: emptyMap()
-
     override val nextActionType: StripeIntent.NextActionType?
         get() = when (nextActionData) {
             is StripeIntent.NextActionData.SdkData -> StripeIntent.NextActionType.UseStripeSdk
@@ -179,24 +170,13 @@ data class PaymentIntent internal constructor(
      * SetupFutureUsage is considered to be set if it is on or off session.
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    private fun isTopLevelSetupFutureUsageSet() =
+    fun isSetupFutureUsageSet() =
         when (setupFutureUsage) {
             StripeIntent.Usage.OnSession -> true
             StripeIntent.Usage.OffSession -> true
             StripeIntent.Usage.OneTime -> false
             null -> false
         }
-
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    fun isLpmLevelSetupFutureUsageSet(code: PaymentMethodCode): Boolean {
-        return isTopLevelSetupFutureUsageSet() || paymentMethodOptionsJsonString?.let {
-            JSONObject(paymentMethodOptionsJsonString)
-                .optJSONObject(code)
-                ?.optString("setup_future_usage")?.let {
-                    true
-                } ?: false
-        } ?: false
-    }
 
     /**
      * The payment error encountered in the previous [PaymentIntent] confirmation.

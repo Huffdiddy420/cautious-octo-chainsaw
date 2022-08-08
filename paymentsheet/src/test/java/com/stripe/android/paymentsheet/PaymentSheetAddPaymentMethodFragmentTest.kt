@@ -1,6 +1,5 @@
 package com.stripe.android.paymentsheet
 
-import android.app.Application
 import android.content.Context
 import android.content.res.Resources
 import android.util.DisplayMetrics
@@ -11,6 +10,7 @@ import androidx.fragment.app.testing.FragmentScenario
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.stripe.android.ApiKeyFixtures
 import com.stripe.android.PaymentConfiguration
@@ -52,6 +52,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 internal class PaymentSheetAddPaymentMethodFragmentTest : PaymentSheetViewModelTestInjection() {
     private val context: Context = ApplicationProvider.getApplicationContext()
+    private val lpmRepository = LpmRepository(context.resources)
 
     @Before
     fun setup() {
@@ -483,7 +484,6 @@ internal class PaymentSheetAddPaymentMethodFragmentTest : PaymentSheetViewModelT
             customerRepositoryPMs = paymentMethods,
             injectorKey = args.injectorKey
         )
-        idleLooper()
 
         // somehow the saveInstanceState for the viewModel needs to be present
 
@@ -501,10 +501,6 @@ internal class PaymentSheetAddPaymentMethodFragmentTest : PaymentSheetViewModelT
                 idleLooper()
                 registerViewModel(args.injectorKey, viewModel, lpmRepository)
             } else {
-                it.sheetViewModel.resourceRepository.getLpmRepository().forceUpdate(
-                    stripeIntent.paymentMethodTypes,
-                    null
-                )
                 it.sheetViewModel.updatePaymentMethods(stripeIntent)
                 it.sheetViewModel.setStripeIntent(stripeIntent)
                 idleLooper()
@@ -522,17 +518,7 @@ internal class PaymentSheetAddPaymentMethodFragmentTest : PaymentSheetViewModelT
 
     companion object {
         val lpmRepository =
-            LpmRepository(LpmRepository.LpmRepositoryArguments(ApplicationProvider.getApplicationContext<Application>().resources)).apply {
-                this.forceUpdate(
-                    listOf(
-                        PaymentMethod.Type.Card.code,
-                        PaymentMethod.Type.USBankAccount.code,
-                        PaymentMethod.Type.SepaDebit.code,
-                        PaymentMethod.Type.Bancontact.code
-                    ),
-                    null
-                )
-            }
+            LpmRepository(InstrumentationRegistry.getInstrumentation().targetContext.resources)
         val Bancontact = lpmRepository.fromCode("bancontact")!!
         val SepaDebit = lpmRepository.fromCode("sepa_debit")!!
     }

@@ -58,10 +58,20 @@ internal class SignUpScreenTest {
     }
 
     @Test
-    fun header_message_is_correct() {
+    fun header_message_is_correct_before_collecting_email() {
         setContent(SignUpState.InputtingEmail)
 
         composeTestRule.onNodeWithText("Secure 1-click checkout").assertExists()
+        composeTestRule.onNodeWithText("Save your info for secure 1-click checkout")
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun header_message_is_correct_when_collecting_phone_number() {
+        setContent(SignUpState.InputtingPhone)
+
+        composeTestRule.onNodeWithText("Secure 1-click checkout").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Save your info for secure 1-click checkout").assertExists()
     }
 
     @Test

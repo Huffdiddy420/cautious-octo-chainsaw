@@ -89,7 +89,6 @@ internal class ConfirmPaymentIntentParamsFactory(
                         }
                     )
                 }
-                PaymentMethod.Type.Link.code -> null
                 else -> {
                     PaymentMethodOptionsParams.Card(
                         setupFutureUsage = null

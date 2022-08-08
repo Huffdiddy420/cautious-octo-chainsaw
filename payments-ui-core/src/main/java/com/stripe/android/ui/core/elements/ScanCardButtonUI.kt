@@ -26,7 +26,6 @@ import com.stripe.android.ui.core.cardscan.CardScanActivity
 
 @Composable
 internal fun ScanCardButtonUI(
-    enabled: Boolean,
     onResult: (intent: Intent) -> Unit
 ) {
     val context = LocalContext.current
@@ -40,9 +39,8 @@ internal fun ScanCardButtonUI(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
             indication = null,
-            enabled = enabled,
+            interactionSource = remember { MutableInteractionSource() },
             onClick = {
                 cardScanLauncher.launch(
                     Intent(

@@ -14,8 +14,7 @@ import kotlinx.coroutines.flow.map
 class PhoneNumberController internal constructor(
     val initialPhoneNumber: String = "",
     initiallySelectedCountryCode: String? = null,
-    overrideCountryCodes: Set<String> = emptySet(),
-    override val showOptionalLabel: Boolean = false
+    overrideCountryCodes: Set<String> = emptySet()
 ) : InputController {
     override val label = flowOf(R.string.address_label_phone_number)
 
@@ -55,9 +54,10 @@ class PhoneNumberController internal constructor(
     override val rawFieldValue = combine(fieldValue, phoneNumberFormatter) { value, formatter ->
         formatter.toE164Format(value)
     }
-    override val isComplete = fieldValue.map { it.isNotBlank() || showOptionalLabel }
-    override val formFieldValue = fieldValue.combine(isComplete) { fieldValue, isComplete ->
-        FormFieldEntry(fieldValue, isComplete)
+    override val isComplete = fieldValue.map { it.isNotBlank() }
+    override val showOptionalLabel = false
+    override val formFieldValue = fieldValue.map {
+        FormFieldEntry(it, it.isNotBlank())
     }
 
     override val error: Flow<FieldError?> = flowOf(null)

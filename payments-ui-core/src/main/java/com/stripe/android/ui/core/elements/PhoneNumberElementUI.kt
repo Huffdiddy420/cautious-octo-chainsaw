@@ -73,16 +73,7 @@ internal fun PhoneNumberElementUI(
             .focusRequester(focusRequester),
         enabled = enabled,
         label = {
-            FormLabel(
-                text = if (controller.showOptionalLabel) {
-                    stringResource(
-                        R.string.form_label_optional,
-                        stringResource(label)
-                    )
-                } else {
-                    stringResource(label)
-                }
-            )
+            FormLabel(text = stringResource(label))
         },
         placeholder = {
             Text(text = placeholder)

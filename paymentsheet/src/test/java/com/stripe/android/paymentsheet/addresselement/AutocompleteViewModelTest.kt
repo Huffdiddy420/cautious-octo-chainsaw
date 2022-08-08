@@ -5,7 +5,6 @@ import android.text.SpannableString
 import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import com.stripe.android.paymentsheet.addresselement.analytics.AddressLauncherEventReporter
 import com.stripe.android.ui.core.elements.TextFieldIcon
 import com.stripe.android.ui.core.elements.autocomplete.PlacesClientProxy
 import com.stripe.android.ui.core.elements.autocomplete.model.AutocompletePrediction
@@ -26,7 +25,6 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
 import org.mockito.kotlin.stub
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -41,19 +39,17 @@ class AutocompleteViewModelTest {
     private val navigator = mock<AddressElementNavigator>()
     private val application = ApplicationProvider.getApplicationContext<Application>()
     private val mockClient = mock<PlacesClientProxy>()
-    private val mockEventReporter = mock<AddressLauncherEventReporter>()
 
     private fun createViewModel() =
         AutocompleteViewModel(
             args,
             navigator,
-            mockClient,
-            AutocompleteViewModel.Args(
-                "US"
-            ),
-            mockEventReporter,
             application
-        )
+        ).apply {
+            initialize {
+                mockClient
+            }
+        }
 
     @BeforeTest
     fun setUp() {
@@ -76,7 +72,7 @@ class AutocompleteViewModelTest {
             )
         )
         val expectedResult = Result.success(
-            AddressDetails(
+            ShippingAddress(
                 city = null,
                 country = null,
                 line1 = "",
@@ -133,27 +129,17 @@ class AutocompleteViewModelTest {
     fun `onEnterAddressManually sets the current address and navigates back`() = runTest(UnconfinedTestDispatcher()) {
         val viewModel = createViewModel()
         val expectedResult = Result.success(
-            AddressDetails(
-                line1 = "Some query"
+            ShippingAddress(
+                city = "city",
+                country = null,
+                line1 = "",
+                line2 = null,
+                postalCode = null,
+                state = null
             )
         )
 
-        viewModel.textFieldController.onRawValueChange("Some query")
-        viewModel.onEnterAddressManually()
-
-        verify(navigator).setResult(anyOrNull(), eq(expectedResult.getOrNull()))
-        verify(navigator).onBack()
-    }
-
-    @Test
-    fun `onEnterAddressManually navigates back with empty address`() = runTest(UnconfinedTestDispatcher()) {
-        val viewModel = createViewModel()
-        val expectedResult = Result.success(
-            AddressDetails(
-                line1 = ""
-            )
-        )
-
+        viewModel.addressResult.value = expectedResult
         viewModel.onEnterAddressManually()
 
         verify(navigator).setResult(anyOrNull(), eq(expectedResult.getOrNull()))
@@ -207,44 +193,5 @@ class AutocompleteViewModelTest {
         advanceTimeBy(AutocompleteViewModel.SEARCH_DEBOUNCE_MS + 1)
 
         assertThat(viewModel.predictions.value?.size).isEqualTo(null)
-    }
-
-    @Test
-    fun `when address is empty trailing icon is null`() = runTest(UnconfinedTestDispatcher()) {
-        val viewModel = createViewModel()
-
-        viewModel.textFieldController.onRawValueChange("")
-
-        assertThat(viewModel.textFieldController.trailingIcon.stateIn(viewModel.viewModelScope).value).isNull()
-
-        viewModel.textFieldController.onRawValueChange("a")
-
-        assertThat(viewModel.textFieldController.trailingIcon.stateIn(viewModel.viewModelScope).value).isNotNull()
-    }
-
-    @Test
-    fun `when query is not empty then return line1 on back`() = runTest(UnconfinedTestDispatcher()) {
-        val viewModel = createViewModel()
-
-        viewModel.textFieldController.onRawValueChange("a")
-        viewModel.onBackPressed()
-
-        verify(viewModel.navigator).setResult(eq(AddressDetails.KEY), eq(AddressDetails(line1 = "a")))
-    }
-
-    @Test
-    fun `when query is empty then do nothing on back`() = runTest(UnconfinedTestDispatcher()) {
-        val viewModel = createViewModel()
-
-        viewModel.textFieldController.onRawValueChange("")
-        viewModel.onBackPressed()
-
-        verify(viewModel.navigator, never()).setResult(any(), any())
-    }
-
-    @Test
-    fun `initializing ViewModel emits onShow event`() {
-        createViewModel()
-        verify(mockEventReporter).onShow(eq("US"))
     }
 }

@@ -15,7 +15,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -46,45 +45,33 @@ class ComposeExampleActivity : AppCompatActivity() {
     fun ComposeScreen() {
         val inProgress by viewModel.inProgress.observeAsState(false)
         val status by viewModel.status.observeAsState("")
-        val paymentLauncher = rememberPaymentLauncher()
 
-        ComposeScreen(
-            inProgress = inProgress,
-            status = status,
-            onConfirm = { paymentLauncher.confirm(it) }
-        )
-    }
-
-    @Composable
-    private fun ComposeScreen(
-        inProgress: Boolean,
-        status: String,
-        onConfirm: (ConfirmPaymentIntentParams) -> Unit
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 10.dp)) {
-            if (inProgress) {
-                LinearProgressIndicator(
-                    modifier = Modifier.fillMaxWidth()
+        createPaymentLauncher().let { paymentLauncher ->
+            Column(modifier = Modifier.padding(horizontal = 10.dp)) {
+                if (inProgress) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Text(
+                    stringResource(R.string.payment_auth_intro),
+                    modifier = Modifier.padding(vertical = 5.dp)
                 )
+                ConfirmButton(
+                    params = confirmParams3ds1,
+                    buttonName = R.string.confirm_with_3ds1_button,
+                    paymentLauncher = paymentLauncher,
+                    inProgress = inProgress
+                )
+                ConfirmButton(
+                    params = confirmParams3ds2,
+                    buttonName = R.string.confirm_with_3ds2_button,
+                    paymentLauncher = paymentLauncher,
+                    inProgress = inProgress
+                )
+                Divider(modifier = Modifier.padding(vertical = 5.dp))
+                Text(text = status)
             }
-            Text(
-                stringResource(R.string.payment_auth_intro),
-                modifier = Modifier.padding(vertical = 5.dp)
-            )
-            ConfirmButton(
-                params = confirmParams3ds1,
-                buttonName = R.string.confirm_with_3ds1_button,
-                onConfirm = onConfirm,
-                inProgress = inProgress
-            )
-            ConfirmButton(
-                params = confirmParams3ds2,
-                buttonName = R.string.confirm_with_3ds2_button,
-                onConfirm = onConfirm,
-                inProgress = inProgress
-            )
-            Divider(modifier = Modifier.padding(vertical = 5.dp))
-            Text(text = status)
         }
     }
 
@@ -92,43 +79,39 @@ class ComposeExampleActivity : AppCompatActivity() {
      * Create [PaymentLauncher] in a [Composable]
      */
     @Composable
-    private fun rememberPaymentLauncher(): PaymentLauncher {
-        val context = LocalContext.current
-        val settings = remember { Settings(context) }
-        return PaymentLauncher.rememberLauncher(
+    fun createPaymentLauncher(): PaymentLauncher {
+        val settings = Settings(LocalContext.current)
+        return PaymentLauncher.createForCompose(
             publishableKey = settings.publishableKey,
-            stripeAccountId = settings.stripeAccountId,
-            callback = ::onPaymentResult
-        )
-    }
-
-    private fun onPaymentResult(paymentResult: PaymentResult) {
-        when (paymentResult) {
-            is PaymentResult.Completed -> {
-                viewModel.status.value += "\n\nPaymentIntent confirmation succeeded\n\n"
-                viewModel.inProgress.value = false
-            }
-            is PaymentResult.Canceled -> {
-                viewModel.status.value += "\n\nPaymentIntent confirmation cancelled\n\n"
-                viewModel.inProgress.value = false
-            }
-            is PaymentResult.Failed -> {
-                viewModel.status.value += "\n\nPaymentIntent confirmation failed with " +
-                    "throwable ${paymentResult.throwable} \n\n"
-                viewModel.inProgress.value = false
+            stripeAccountId = settings.stripeAccountId
+        ) {
+            when (it) {
+                is PaymentResult.Completed -> {
+                    viewModel.status.value += "\n\nPaymentIntent confirmation succeeded\n\n"
+                    viewModel.inProgress.value = false
+                }
+                is PaymentResult.Canceled -> {
+                    viewModel.status.value += "\n\nPaymentIntent confirmation cancelled\n\n"
+                    viewModel.inProgress.value = false
+                }
+                is PaymentResult.Failed -> {
+                    viewModel.status.value += "\n\nPaymentIntent confirmation failed with " +
+                        "throwable ${it.throwable} \n\n"
+                    viewModel.inProgress.value = false
+                }
             }
         }
     }
 
     @Composable
-    private fun ConfirmButton(
+    fun ConfirmButton(
         params: PaymentMethodCreateParams,
         @StringRes buttonName: Int,
-        inProgress: Boolean,
-        onConfirm: (ConfirmPaymentIntentParams) -> Unit
+        paymentLauncher: PaymentLauncher,
+        inProgress: Boolean
     ) {
         Button(
-            onClick = { createAndConfirmPaymentIntent(params, onConfirm) },
+            onClick = { createAndConfirmPaymentIntent(params, paymentLauncher) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 5.dp),
@@ -140,7 +123,7 @@ class ComposeExampleActivity : AppCompatActivity() {
 
     private fun createAndConfirmPaymentIntent(
         params: PaymentMethodCreateParams,
-        onConfirm: (ConfirmPaymentIntentParams) -> Unit
+        paymentLauncher: PaymentLauncher
     ) {
         viewModel.createPaymentIntent("us").observe(
             this
@@ -152,7 +135,7 @@ class ComposeExampleActivity : AppCompatActivity() {
                         clientSecret = responseData.getString("secret"),
                         shipping = SHIPPING
                     )
-                onConfirm(confirmPaymentIntentParams)
+                paymentLauncher.confirm(confirmPaymentIntentParams)
             }
         }
     }

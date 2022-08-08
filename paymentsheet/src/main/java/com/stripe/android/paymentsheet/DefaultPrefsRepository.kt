@@ -16,25 +16,27 @@ internal class DefaultPrefsRepository(
         context.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
     }
 
-    override suspend fun getSavedSelection(
-        isGooglePayAvailable: Boolean,
-        isLinkAvailable: Boolean
-    ) = withContext(workContext) {
-        val prefData = prefs.getString(getKey(), null).orEmpty().split(":")
-        when (prefData.firstOrNull()) {
-            "google_pay" -> SavedSelection.GooglePay.takeIf { isGooglePayAvailable }
-            "link" -> SavedSelection.Link.takeIf { isLinkAvailable }
-            "payment_method" -> prefData.getOrNull(1)?.let {
-                SavedSelection.PaymentMethod(id = it)
-            }
-            else -> null
-        } ?: SavedSelection.None
-    }
+    override suspend fun getSavedSelection(isGooglePayAvailable: Boolean): SavedSelection =
+        withContext(workContext) {
+            val prefData = prefs.getString(getKey(), null).orEmpty().split(":")
+            when (prefData.firstOrNull()) {
+                "google_pay" -> {
+                    SavedSelection.GooglePay.takeIf { isGooglePayAvailable }
+                }
+                "payment_method" -> {
+                    prefData.getOrNull(1)?.let {
+                        SavedSelection.PaymentMethod(id = it)
+                    }
+                }
+                else -> null
+            } ?: SavedSelection.None
+        }
 
     override fun savePaymentSelection(paymentSelection: PaymentSelection?) {
         when (paymentSelection) {
-            PaymentSelection.GooglePay -> "google_pay"
-            PaymentSelection.Link -> "link"
+            PaymentSelection.GooglePay -> {
+                "google_pay"
+            }
             is PaymentSelection.Saved -> {
                 "payment_method:${paymentSelection.paymentMethod.id.orEmpty()}"
             }
